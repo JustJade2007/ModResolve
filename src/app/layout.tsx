@@ -33,6 +33,7 @@ export default function RootLayout({
           fontInter.variable,
           fontSourceCodePro.variable
         )}
+        suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"
