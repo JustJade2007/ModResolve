@@ -25,8 +25,8 @@ async function initializeAdminUser() {
     // File doesn't exist, create it with the admin user
     const adminUser: User = {
       name: 'Admin',
-      email: process.env.ADMIN_USERNAME || 'admin@example.com',
-      password: process.env.ADMIN_PASSWORD || 'password',
+      email: process.env.ADMIN_USERNAME || 'jacobhite2007@gmail.com',
+      password: process.env.ADMIN_PASSWORD || 'Chuck62$1',
       isAdmin: true,
     };
     await fs.mkdir(dataDir, { recursive: true });
@@ -38,7 +38,7 @@ async function initializeAdminUser() {
 initializeAdminUser();
 
 export async function isAdmin(email: string): Promise<boolean> {
-  return email === (process.env.ADMIN_USERNAME || 'admin@example.com');
+  return email === (process.env.ADMIN_USERNAME || 'jacobhite2007@gmail.com');
 }
 
 export async function getSession(): Promise<{ user: Omit<User, 'password'> } | null> {
