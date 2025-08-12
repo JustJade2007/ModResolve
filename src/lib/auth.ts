@@ -3,14 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UserData } from './user-data';
-
-
-export type User = {
-  name: string;
-  email: string;
-  password?: string; // Should be hashed in a real app
-  isAdmin: boolean;
-};
+import type { User } from './actions';
 
 
 export async function isAdmin(email: string): Promise<boolean> {
@@ -48,7 +41,7 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string;
 
   if (!email || !password) {
-    redirect('/login?error=Invalid+credentials');
+    return redirect('/login?error=Invalid+credentials');
   }
 
   const userData = await UserData.getInstance();
@@ -56,9 +49,9 @@ export async function login(formData: FormData) {
 
   if (user && user.password === password) {
     await createSession(user);
-    redirect('/');
+    return redirect('/');
   } else {
-    redirect('/login?error=Invalid+credentials');
+    return redirect('/login?error=Invalid+credentials');
   }
 }
 

@@ -14,8 +14,8 @@ import {
   generalHelpFlow,
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
-import { User } from './auth';
 import { UserData } from './user-data';
+import type { User as AuthUser } from './auth';
 
 // Schemas
 const analyzeSchema = z.object({
@@ -55,9 +55,8 @@ export interface ActionFormState {
   error: string | null;
 }
 
+export type User = AuthUser;
 export type AccountRequest = z.infer<typeof userSchema>;
-export type { User };
-
 
 // AI Actions
 export async function analyzeAndSuggest(
@@ -178,7 +177,7 @@ export async function requestAccount(
 }
 
 export async function createUser(
-  prevState: ActionFormState,
+  prevState: ActionFormState | undefined,
   formData: FormData
 ): Promise<ActionFormState> {
   const validatedFields = userSchema.safeParse(
@@ -208,7 +207,6 @@ export async function createUser(
   return { error: null, message: `User ${name} created successfully.` };
 }
 
-
 export async function getAccountRequests(): Promise<AccountRequest[]> {
   const userData = await UserData.getInstance();
   return userData.getRequests();
@@ -219,9 +217,8 @@ export async function getUsers(): Promise<User[]> {
   return userData.getUsers();
 }
 
-
 export async function approveRequest(
-  prevState: ActionFormState,
+  prevState: ActionFormState | undefined,
   request: AccountRequest
 ): Promise<ActionFormState> {
   try {
@@ -237,7 +234,7 @@ export async function approveRequest(
 }
 
 export async function denyRequest(
-  prevState: ActionFormState,
+  prevState: ActionFormState | undefined,
   email: string
 ): Promise<ActionFormState> {
   try {
@@ -247,12 +244,13 @@ export async function denyRequest(
     revalidatePath('/admin');
     return { error: null, message: `Denied request for ${email}` };
   } catch (e) {
-    return { error: 'Failed to deny request.', message: null };
+    const error = e instanceof Error ? e.message : 'Failed to deny request.';
+    return { error, message: null };
   }
 }
 
 export async function deleteUser(
-  prevState: ActionFormState,
+   prevState: ActionFormState | undefined,
   email: string
 ): Promise<ActionFormState> {
   try {
@@ -266,6 +264,7 @@ export async function deleteUser(
     revalidatePath('/admin');
     return { error: null, message: `User ${email} deleted.` };
   } catch (e) {
-    return { error: 'Failed to delete user.', message: null };
+    const error = e instanceof Error ? e.message : 'Failed to delete user.';
+    return { error, message: null };
   }
 }

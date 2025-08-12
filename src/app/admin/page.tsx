@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useEffect, useState, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   createUser,
@@ -76,22 +75,26 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<AccountRequest[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
-  const [createState, createFormAction, isCreatePending] = useActionState(
+  const [createState, createFormAction] = useActionState(
     createUser,
     initialFormState
   );
-  const [approveState, approveAction, isApprovePending] = useActionState(
+  const [approveState, approveAction] = useActionState(
     approveRequest,
     initialFormState
   );
-  const [denyState, denyAction, isDenyPending] = useActionState(
+  const [denyState, denyAction] = useActionState(
     denyRequest,
     initialFormState
   );
-  const [deleteState, deleteAction, isDeletePending] = useActionState(
+  const [deleteState, deleteAction] = useActionState(
     deleteUser,
     initialFormState
   );
+  
+  const { pending: isCreatePending } = useFormStatus();
+  const { pending: isApprovePending } = useFormStatus();
+  const { pending: isDenyPending } = useFormStatus();
 
   async function fetchAllData() {
     try {
