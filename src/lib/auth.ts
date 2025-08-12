@@ -42,6 +42,9 @@ async function createSession(user: DbUser) {
     maxAge: 60 * 60 * 24 * 7, // One week
     path: '/',
   });
+
+  // Redirect after setting the cookie
+  redirect('/');
 }
 
 export async function login(formData: FormData) {
@@ -57,9 +60,9 @@ export async function login(formData: FormData) {
     const user = await userData.findUserByEmail(email);
     
     if (user && user.password === password) {
+      // On success, create the session and redirect.
       await createSession(user);
-      // On success, redirect to the home page.
-      return redirect('/');
+      return; // createSession handles the redirect
     }
   } catch (error) {
     console.error("Login failed:", error);
