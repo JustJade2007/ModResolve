@@ -61,16 +61,17 @@ export async function login(formData: FormData) {
     
     if (user && user.password === password) {
       // On success, create the session and redirect.
+      // The redirect is now handled inside createSession.
       await createSession(user);
-      return; // createSession handles the redirect
+    } else {
+      // If user not found or password doesn't match, redirect with error.
+      return redirect('/login?error=Invalid+credentials');
     }
   } catch (error) {
     console.error("Login failed:", error);
-    // Fallthrough to the general error case
+    // If any other error occurs, also redirect with an error.
+    return redirect('/login?error=An+unexpected+error+occurred');
   }
-
-  // If anything fails (user not found, password mismatch, error), redirect with an error.
-  return redirect('/login?error=Invalid+credentials');
 }
 
 export async function logout() {
