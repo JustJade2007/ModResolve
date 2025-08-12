@@ -2,11 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import * as fs from 'fs/promises';
-import path from 'path';
+import { UserData } from './user-data';
 
-const SECRET_KEY =
-  process.env.AUTH_SECRET || 'a-very-secret-key-that-is-not-secure';
 
 export type User = {
   name: string;
@@ -15,38 +12,11 @@ export type User = {
   isAdmin: boolean;
 };
 
-const dataDir = path.join(process.cwd(), 'data');
-const usersPath = path.join(dataDir, 'users.json');
-
-async function initializeAdminUser() {
-  try {
-    await fs.access(usersPath);
-  } catch {
-    // File doesn't exist, create it with the admin user
-    const adminUser: User = {
-      name: 'Admin',
-      email: process.env.ADMIN_USERNAME!,
-      password: process.env.ADMIN_PASSWORD!,
-      isAdmin: true,
-    };
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(usersPath, JSON.stringify([adminUser], null, 2));
-  }
-}
-
-// Call initialization on module load
-initializeAdminUser();
 
 export async function isAdmin(email: string): Promise<boolean> {
-  try {
-    const usersData = await fs.readFile(usersPath, 'utf-8');
-    const users: User[] = JSON.parse(usersData);
-    const user = users.find(u => u.email === email);
-    return user ? user.isAdmin : false;
-  } catch (error) {
-    console.error('Error reading users file in isAdmin:', error);
-    return false;
-  }
+  const userData = await UserData.getInstance();
+  const user = await userData.findUserByEmail(email);
+  return user ? user.isAdmin : false;
 }
 
 export async function getSession(): Promise<{ user: Omit<User, 'password'> } | null> {
@@ -78,26 +48,17 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string;
 
   if (!email || !password) {
-    return redirect('/login?error=Invalid+credentials');
+    redirect('/login?error=Invalid+credentials');
   }
 
-  let users: User[] = [];
-  try {
-    const usersData = await fs.readFile(usersPath, 'utf-8');
-    users = JSON.parse(usersData);
-  } catch (error) {
-    console.error("Could not read users.json:", error);
-    return redirect('/login?error=Server+error,+could+not+read+user+data.');
-  }
+  const userData = await UserData.getInstance();
+  const user = await userData.findUserByEmail(email);
 
-  const user = users.find(u => u.email === email);
-
-  // In a real app, use a secure comparison like bcrypt.compare
   if (user && user.password === password) {
     await createSession(user);
-    return redirect('/');
+    redirect('/');
   } else {
-    return redirect('/login?error=Invalid+credentials');
+    redirect('/login?error=Invalid+credentials');
   }
 }
 

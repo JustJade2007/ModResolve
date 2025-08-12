@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
+import { useFormState } from 'react-dom';
 import { useFormStatus } from 'react-dom';
 import {
   createUser,
@@ -69,23 +69,6 @@ function SubmitButton({
   );
 }
 
-function ActionButton({
-  action,
-  children,
-  ...props
-}: { action: () => void; children: React.ReactNode } & React.ComponentProps<
-  typeof Button
->) {
-  const { pending } = useFormStatus();
-  return (
-    <form action={action}>
-      <Button disabled={pending} {...props}>
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
-      </Button>
-    </form>
-  );
-}
-
 const initialFormState: ActionFormState = { message: null, error: null };
 
 export default function AdminPage() {
@@ -93,16 +76,19 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<AccountRequest[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
-  const [createState, createFormAction] = useActionState(
+  const [createState, createFormAction, isCreatePending] = useActionState(
     createUser,
     initialFormState
   );
-  const [approveState, approveAction] = useActionState(
+  const [approveState, approveAction, isApprovePending] = useActionState(
     approveRequest,
     initialFormState
   );
-  const [denyState, denyAction] = useActionState(denyRequest, initialFormState);
-  const [deleteState, deleteAction] = useActionState(
+  const [denyState, denyAction, isDenyPending] = useActionState(
+    denyRequest,
+    initialFormState
+  );
+  const [deleteState, deleteAction, isDeletePending] = useActionState(
     deleteUser,
     initialFormState
   );
@@ -126,23 +112,27 @@ export default function AdminPage() {
   useEffect(() => {
     fetchAllData();
   }, []);
-
-  useEffect(() => {
-    const states = [createState, approveState, denyState, deleteState];
-    states.forEach(state => {
-      if (state.message) {
+  
+  const handleAction = (state: ActionFormState | undefined) => {
+    if(!state) return;
+    if (state.message) {
         toast({ title: 'Success', description: state.message });
-        fetchAllData(); // Refetch data on success
-      }
-      if (state.error) {
+        fetchAllData();
+    }
+    if (state.error) {
         toast({
           title: 'Error',
           description: state.error,
           variant: 'destructive',
         });
       }
-    });
-  }, [createState, approveState, denyState, deleteState, toast]);
+  }
+
+  useEffect(() => handleAction(createState), [createState]);
+  useEffect(() => handleAction(approveState), [approveState]);
+  useEffect(() => handleAction(denyState), [denyState]);
+  useEffect(() => handleAction(deleteState), [deleteState]);
+
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -176,21 +166,18 @@ export default function AdminPage() {
                     <TableCell className="font-medium">{request.name}</TableCell>
                     <TableCell>{request.email}</TableCell>
                     <TableCell className="flex justify-end gap-2">
-                      <ActionButton
-                        action={() => approveAction(request)}
-                        size="sm"
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        Approve
-                      </ActionButton>
-                      <ActionButton
-                        action={() => denyAction(request.email)}
-                        size="sm"
-                        variant="destructive"
-                      >
-                        <X className="mr-2 h-4 w-4" />
-                        Deny
-                      </ActionButton>
+                       <form action={() => approveAction(request)} className="inline-block">
+                          <Button size="sm" type="submit" disabled={isApprovePending || isDenyPending}>
+                              {isApprovePending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="mr-2 h-4 w-4"/>}
+                              Approve
+                          </Button>
+                       </form>
+                       <form action={() => denyAction(request.email)} className="inline-block">
+                           <Button size="sm" variant="destructive" type="submit" disabled={isApprovePending || isDenyPending}>
+                              {isDenyPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="mr-2 h-4 w-4" />}
+                              Deny
+                          </Button>
+                       </form>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -276,6 +263,7 @@ export default function AdminPage() {
                   type="text"
                   placeholder="John Doe"
                   required
+                  disabled={isCreatePending}
                 />
               </div>
               <div className="grid gap-2">
@@ -286,6 +274,7 @@ export default function AdminPage() {
                   type="email"
                   placeholder="user@example.com"
                   required
+                   disabled={isCreatePending}
                 />
               </div>
               <div className="grid gap-2">
@@ -295,6 +284,7 @@ export default function AdminPage() {
                   name="password"
                   type="password"
                   required
+                   disabled={isCreatePending}
                 />
               </div>
               <SubmitButton

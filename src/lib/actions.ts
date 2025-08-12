@@ -2,8 +2,6 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import * as fs from 'fs/promises';
-import path from 'path';
 import {
   analyzeErrorLog,
   type AnalyzeErrorLogOutput,
@@ -17,10 +15,7 @@ import {
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
 import { User } from './auth';
-
-const dataDir = path.join(process.cwd(), 'data');
-const usersPath = path.join(dataDir, 'users.json');
-const requestsPath = path.join(dataDir, 'requests.json');
+import { UserData } from './user-data';
 
 // Schemas
 const analyzeSchema = z.object({
@@ -63,23 +58,6 @@ export interface ActionFormState {
 export type AccountRequest = z.infer<typeof userSchema>;
 export type { User };
 
-
-// Helper functions to read/write JSON files
-async function readJsonFile<T>(filePath: string): Promise<T[]> {
-  try {
-    await fs.access(filePath);
-    const data = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    // If file doesn't exist, return empty array
-    return [];
-  }
-}
-
-async function writeJsonFile<T>(filePath: string, data: T[]): Promise<void> {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-}
 
 // AI Actions
 export async function analyzeAndSuggest(
@@ -185,18 +163,16 @@ export async function requestAccount(
   }
 
   const newRequest = validatedFields.data;
-  const requests = await readJsonFile<AccountRequest>(requestsPath);
-  const users = await readJsonFile<User>(usersPath);
+  const userData = await UserData.getInstance();
+  
+  const userExists = await userData.findUserByEmail(newRequest.email);
+  const requestExists = await userData.findRequestByEmail(newRequest.email);
 
-  if (
-    requests.some(r => r.email === newRequest.email) ||
-    users.some(u => u.email === newRequest.email)
-  ) {
+  if (userExists || requestExists) {
     return { message: null, error: 'An account with this email already exists or has been requested.' };
   }
 
-  requests.push(newRequest);
-  await writeJsonFile(requestsPath, requests);
+  await userData.addRequest(newRequest);
 
   return { error: null, message: 'Account request submitted successfully.' };
 }
@@ -219,28 +195,28 @@ export async function createUser(
   }
   
   const { name, email, password } = validatedFields.data;
+  const userData = await UserData.getInstance();
+  const existingUser = await userData.findUserByEmail(email);
 
-  const users = await readJsonFile<User>(usersPath);
-  if (users.some(u => u.email === email)) {
+  if (existingUser) {
     return { message: null, error: 'User with this email already exists.' };
   }
 
-  // In a real app, you would hash the password here.
-  users.push({ name, email, password, isAdmin: false });
-  await writeJsonFile(usersPath, users);
+  await userData.addUser({ name, email, password, isAdmin: false });
   
   revalidatePath('/admin');
-
   return { error: null, message: `User ${name} created successfully.` };
 }
 
 
 export async function getAccountRequests(): Promise<AccountRequest[]> {
-  return await readJsonFile<AccountRequest>(requestsPath);
+  const userData = await UserData.getInstance();
+  return userData.getRequests();
 }
 
 export async function getUsers(): Promise<User[]> {
-    return await readJsonFile<User>(usersPath);
+  const userData = await UserData.getInstance();
+  return userData.getUsers();
 }
 
 
@@ -249,20 +225,14 @@ export async function approveRequest(
   request: AccountRequest
 ): Promise<ActionFormState> {
   try {
-    const users = await readJsonFile<User>(usersPath);
-    if (!users.some(u => u.email === request.email)) {
-      users.push({ ...request, isAdmin: false });
-      await writeJsonFile(usersPath, users);
-    }
-
-    let requests = await readJsonFile<AccountRequest>(requestsPath);
-    requests = requests.filter(r => r.email !== request.email);
-    await writeJsonFile(requestsPath, requests);
+    const userData = await UserData.getInstance();
+    await userData.approveRequest(request);
 
     revalidatePath('/admin');
     return { error: null, message: `Approved request for ${request.email}` };
   } catch (e) {
-    return { error: 'Failed to approve request.', message: null };
+    const error = e instanceof Error ? e.message : 'Failed to approve request.';
+    return { error, message: null };
   }
 }
 
@@ -271,9 +241,8 @@ export async function denyRequest(
   email: string
 ): Promise<ActionFormState> {
   try {
-    let requests = await readJsonFile<AccountRequest>(requestsPath);
-    requests = requests.filter(r => r.email !== email);
-    await writeJsonFile(requestsPath, requests);
+    const userData = await UserData.getInstance();
+    await userData.denyRequest(email);
 
     revalidatePath('/admin');
     return { error: null, message: `Denied request for ${email}` };
@@ -287,13 +256,12 @@ export async function deleteUser(
   email: string
 ): Promise<ActionFormState> {
   try {
+    const userData = await UserData.getInstance();
     if (email === process.env.ADMIN_USERNAME) {
         return { error: 'Cannot delete the admin account.', message: null };
     }
     
-    let users = await readJsonFile<User>(usersPath);
-    users = users.filter(u => u.email !== email);
-    await writeJsonFile(usersPath, users);
+    await userData.deleteUser(email);
 
     revalidatePath('/admin');
     return { error: null, message: `User ${email} deleted.` };
