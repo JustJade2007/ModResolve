@@ -25,8 +25,8 @@ async function initializeAdminUser() {
     // File doesn't exist, create it with the admin user
     const adminUser: User = {
       name: 'Admin',
-      email: process.env.ADMIN_USERNAME || 'jacobhite2007@gmail.com',
-      password: process.env.ADMIN_PASSWORD || 'Chuck62$1',
+      email: process.env.ADMIN_USERNAME!,
+      password: process.env.ADMIN_PASSWORD!,
       isAdmin: true,
     };
     await fs.mkdir(dataDir, { recursive: true });
