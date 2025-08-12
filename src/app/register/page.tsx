@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Home } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 
@@ -79,7 +79,13 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
+        <Button variant="outline" size="icon">
+          <Home className="h-5 w-5" />
+          <span className="sr-only">Home</span>
+        </Button>
+      </Link>
       <div className="w-full max-w-md">
         <Card>
           <CardHeader className="text-center">
