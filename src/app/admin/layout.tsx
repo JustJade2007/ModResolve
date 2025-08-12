@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Home, UserPlus, Mail } from 'lucide-react';
+import { Home, UserCog, Mail } from 'lucide-react';
 import { getSession, isAdmin } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -29,14 +29,8 @@ export default async function AdminLayout({
           </h3>
           <Button variant="ghost" asChild className="justify-start">
             <Link href="/admin">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Create User
-            </Link>
-          </Button>
-          <Button variant="ghost" asChild className="justify-start">
-            <Link href="/admin/requests">
-              <Mail className="mr-2 h-4 w-4" />
-              Account Requests
+              <UserCog className="mr-2 h-4 w-4" />
+              Account Management
             </Link>
           </Button>
         </nav>

@@ -61,6 +61,8 @@ export interface ActionFormState {
 }
 
 export type AccountRequest = z.infer<typeof userSchema>;
+export type { User };
+
 
 // Helper functions to read/write JSON files
 async function readJsonFile<T>(filePath: string): Promise<T[]> {
@@ -227,7 +229,7 @@ export async function createUser(
   users.push({ name, email, password, isAdmin: false });
   await writeJsonFile(usersPath, users);
   
-  revalidatePath('/admin/requests');
+  revalidatePath('/admin');
 
   return { error: null, message: `User ${name} created successfully.` };
 }
@@ -237,24 +239,65 @@ export async function getAccountRequests(): Promise<AccountRequest[]> {
   return await readJsonFile<AccountRequest>(requestsPath);
 }
 
-export async function approveRequest(request: AccountRequest) {
-  const users = await readJsonFile<User>(usersPath);
-  if (!users.some(u => u.email === request.email)) {
-    users.push({ ...request, isAdmin: false });
-    await writeJsonFile(usersPath, users);
-  }
-
-  let requests = await readJsonFile<AccountRequest>(requestsPath);
-  requests = requests.filter(r => r.email !== request.email);
-  await writeJsonFile(requestsPath, requests);
-
-  revalidatePath('/admin/requests');
+export async function getUsers(): Promise<User[]> {
+    return await readJsonFile<User>(usersPath);
 }
 
-export async function denyRequest(email: string) {
-  let requests = await readJsonFile<AccountRequest>(requestsPath);
-  requests = requests.filter(r => r.email !== email);
-  await writeJsonFile(requestsPath, requests);
 
-  revalidatePath('/admin/requests');
+export async function approveRequest(
+  prevState: ActionFormState,
+  request: AccountRequest
+): Promise<ActionFormState> {
+  try {
+    const users = await readJsonFile<User>(usersPath);
+    if (!users.some(u => u.email === request.email)) {
+      users.push({ ...request, isAdmin: false });
+      await writeJsonFile(usersPath, users);
+    }
+
+    let requests = await readJsonFile<AccountRequest>(requestsPath);
+    requests = requests.filter(r => r.email !== request.email);
+    await writeJsonFile(requestsPath, requests);
+
+    revalidatePath('/admin');
+    return { error: null, message: `Approved request for ${request.email}` };
+  } catch (e) {
+    return { error: 'Failed to approve request.', message: null };
+  }
+}
+
+export async function denyRequest(
+  prevState: ActionFormState,
+  email: string
+): Promise<ActionFormState> {
+  try {
+    let requests = await readJsonFile<AccountRequest>(requestsPath);
+    requests = requests.filter(r => r.email !== email);
+    await writeJsonFile(requestsPath, requests);
+
+    revalidatePath('/admin');
+    return { error: null, message: `Denied request for ${email}` };
+  } catch (e) {
+    return { error: 'Failed to deny request.', message: null };
+  }
+}
+
+export async function deleteUser(
+  prevState: ActionFormState,
+  email: string
+): Promise<ActionFormState> {
+  try {
+    if (email === process.env.ADMIN_USERNAME) {
+        return { error: 'Cannot delete the admin account.', message: null };
+    }
+    
+    let users = await readJsonFile<User>(usersPath);
+    users = users.filter(u => u.email !== email);
+    await writeJsonFile(usersPath, users);
+
+    revalidatePath('/admin');
+    return { error: null, message: `User ${email} deleted.` };
+  } catch (e) {
+    return { error: 'Failed to delete user.', message: null };
+  }
 }
