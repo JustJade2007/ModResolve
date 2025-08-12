@@ -123,6 +123,10 @@ export class UserData {
   async findRequestByEmailOrName(identifier: string): Promise<AccountRequest | undefined> {
     return this.db.requests.find(req => req.email === identifier || req.name === identifier);
   }
+  
+  async findRequestByEmail(email: string): Promise<AccountRequest | undefined> {
+    return this.db.requests.find(req => req.email === email);
+  }
 
   async addUser(user: Omit<User, 'isAdmin'>): Promise<void> {
     const emailExists = await this.findUserByEmailOrName(user.email);
@@ -150,13 +154,17 @@ export class UserData {
     }
   }
   
-  async approveRequest(approvedRequest: AccountRequest): Promise<void> {
-    const userExists = await this.findUserByEmailOrName(approvedRequest.email);
+  async approveRequestByEmail(email: string): Promise<void> {
+    const request = await this.findRequestByEmail(email);
+    if (!request) {
+        throw new Error("Request not found");
+    }
+    const userExists = await this.findUserByEmailOrName(request.email);
     if (!userExists) {
-        await this.addUser(approvedRequest);
+        await this.addUser(request);
     }
     // Whether user existed or not, remove the request
-    await this.denyRequest(approvedRequest.email);
+    await this.denyRequest(request.email);
   }
 
   async denyRequest(email: string): Promise<void> {

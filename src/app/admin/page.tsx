@@ -41,6 +41,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+
 function SubmitButton({
   text,
   pendingText,
@@ -68,36 +69,40 @@ function SubmitButton({
   );
 }
 
-const initialFormState: ActionFormState = { message: null, error: null };
-
-function ActionButton({
-  action,
-  children,
-  variant,
-  size = 'sm',
-}: {
-  action: (formData: FormData) => void;
+function ActionButton({ children, variant, size = 'sm'}: {
   children: React.ReactNode;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined;
-  size?: "default" | "sm" | "lg" | "icon" | null | undefined
+  size?: "default" | "sm" | "lg" | "icon" | null | undefined;
 }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button variant={variant} size={size} type="submit" disabled={pending} formAction={action}>
-      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
-    </Button>
-  );
+    const { pending } = useFormStatus();
+    return (
+        <Button variant={variant} size={size} type="submit" disabled={pending}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
+        </Button>
+    )
 }
 
+const initialFormState: ActionFormState = { message: null, error: null };
 
 export default function AdminPage() {
   const { toast } = useToast();
   const [requests, setRequests] = useState<AccountRequest[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [isPending, startTransition] = useTransition();
+  const [isDataLoading, startDataLoadingTransition] = useTransition();
 
   const [createState, createFormAction, isCreatePending] = useActionState(createUser, initialFormState);
+  
+  const handleActionCompletion = async (actionFn: (formData: FormData) => Promise<ActionFormState>, formData: FormData) => {
+    startDataLoadingTransition(async () => {
+      const result = await actionFn(formData);
+      if (result.message) {
+        toast({ title: 'Success', description: result.message });
+      } else if (result.error) {
+        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+      }
+      fetchAllData();
+    });
+  }
   
   async function fetchAllData() {
     try {
@@ -129,18 +134,6 @@ export default function AdminPage() {
       toast({ title: 'Error', description: createState.error, variant: 'destructive' });
     }
   }, [createState, toast]);
-
-  const handleAction = (action: () => Promise<ActionFormState>) => {
-    startTransition(async () => {
-      const result = await action();
-      if (result.message) {
-        toast({ title: 'Success', description: result.message });
-      } else if (result.error) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      }
-      fetchAllData();
-    });
-  };
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -174,16 +167,20 @@ export default function AdminPage() {
                       <TableCell className="font-medium">{request.name}</TableCell>
                       <TableCell>{request.email}</TableCell>
                       <TableCell className="text-right">
-                        <form className="flex justify-end gap-2" action={() => handleAction(() => approveRequest(request))}>
-                           <Button size="sm" type="submit" disabled={isPending}>
-                               {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <><Check className="mr-2 h-4 w-4"/> Approve</>}
-                           </Button>
-                        </form>
-                         <form className="flex justify-end gap-2" action={() => handleAction(() => denyRequest(request.email))}>
-                             <Button size="sm" variant="destructive" type="submit" disabled={isPending}>
-                                {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <><X className="mr-2 h-4 w-4" /> Deny</>}
-                            </Button>
-                         </form>
+                        <div className="flex justify-end gap-2">
+                            <form action={(fd) => handleActionCompletion(approveRequest, fd)}>
+                                <input type="hidden" name="email" value={request.email}/>
+                                <ActionButton variant="default">
+                                    <Check className="mr-2 h-4 w-4"/> Approve
+                                </ActionButton>
+                            </form>
+                            <form action={(fd) => handleActionCompletion(denyRequest, fd)}>
+                                <input type="hidden" name="email" value={request.email}/>
+                                <ActionButton variant="destructive">
+                                    <X className="mr-2 h-4 w-4" /> Deny
+                                </ActionButton>
+                            </form>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -221,8 +218,8 @@ export default function AdminPage() {
                       {!user.isAdmin && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={isPending}>
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="destructive" size="sm" disabled={isDataLoading}>
+                               {isDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -234,10 +231,11 @@ export default function AdminPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                               <form action={() => handleAction(() => deleteUser(user.email))}>
-                                <AlertDialogAction type="submit" disabled={isPending}>
-                                  {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Continue'}
-                                </AlertDialogAction>
+                               <form action={(fd) => handleActionCompletion(deleteUser, fd)}>
+                                 <input type="hidden" name="email" value={user.email}/>
+                                 <AlertDialogAction asChild>
+                                    <ActionButton variant="destructive">Continue</ActionButton>
+                                 </AlertDialogAction>
                                </form>
                             </AlertDialogFooter>
                           </AlertDialogContent>

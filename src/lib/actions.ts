@@ -220,14 +220,19 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function approveRequest(
-  request: AccountRequest
+  formData: FormData
 ): Promise<ActionFormState> {
+  const email = formData.get('email') as string;
+  if (!email) {
+    return { error: 'Email is required.', message: null };
+  }
+
   try {
     const userData = await UserData.getInstance();
-    await userData.approveRequest(request);
+    await userData.approveRequestByEmail(email);
 
     revalidatePath('/admin');
-    return { error: null, message: `Approved request for ${request.email}` };
+    return { error: null, message: `Approved request for ${email}` };
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Failed to approve request.';
     return { error, message: null };
@@ -235,8 +240,12 @@ export async function approveRequest(
 }
 
 export async function denyRequest(
-  email: string
+  formData: FormData
 ): Promise<ActionFormState> {
+  const email = formData.get('email') as string;
+  if (!email) {
+    return { error: 'Email is required.', message: null };
+  }
   try {
     const userData = await UserData.getInstance();
     await userData.denyRequest(email);
@@ -250,8 +259,12 @@ export async function denyRequest(
 }
 
 export async function deleteUser(
-  email: string
+  formData: FormData
 ): Promise<ActionFormState> {
+  const email = formData.get('email') as string;
+  if (!email) {
+    return { error: 'Email is required.', message: null };
+  }
   try {
     const userData = await UserData.getInstance();
     const adminEmail = process.env.ADMIN_EMAIL;
