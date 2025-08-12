@@ -27,6 +27,10 @@ export async function getSession(): Promise<{ user: User } | null> {
 }
 
 export async function isAdmin(email: string): Promise<boolean> {
+    // The primary admin is always an admin
+    if (email === process.env.ADMIN_USERNAME) {
+      return true;
+    }
     const userData = await UserData.getInstance();
     const user = await userData.findUserByEmail(email);
     return user?.isAdmin ?? false;
@@ -42,9 +46,6 @@ async function createSession(user: DbUser) {
     maxAge: 60 * 60 * 24 * 7, // One week
     path: '/',
   });
-
-  // Redirect after setting the cookie
-  redirect('/');
 }
 
 export async function login(formData: FormData) {
@@ -55,23 +56,38 @@ export async function login(formData: FormData) {
     return redirect('/login?error=Invalid+credentials');
   }
 
+  // **Definitive Fix**: Directly check for the admin user against environment variables first.
+  // This bypasses the unreliable file system for the primary admin login.
+  const adminEmail = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (email === adminEmail && password === adminPassword) {
+    const adminUser: DbUser = {
+      name: 'Admin',
+      email: adminEmail,
+      password: adminPassword, // This is not stored in the cookie
+      isAdmin: true,
+    };
+    await createSession(adminUser);
+    return redirect('/');
+  }
+
+  // Fallback to checking the JSON file for other users
   try {
     const userData = await UserData.getInstance();
     const user = await userData.findUserByEmail(email);
     
     if (user && user.password === password) {
-      // On success, create the session and redirect.
-      // The redirect is now handled inside createSession.
       await createSession(user);
-    } else {
-      // If user not found or password doesn't match, redirect with error.
-      return redirect('/login?error=Invalid+credentials');
+      return redirect('/');
     }
   } catch (error) {
     console.error("Login failed:", error);
-    // If any other error occurs, also redirect with an error.
     return redirect('/login?error=An+unexpected+error+occurred');
   }
+  
+  // If all checks fail, redirect with an error.
+  return redirect('/login?error=Invalid+credentials');
 }
 
 export async function logout() {
