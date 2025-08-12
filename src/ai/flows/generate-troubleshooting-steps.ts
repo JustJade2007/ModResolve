@@ -16,7 +16,7 @@ const GenerateTroubleshootingStepsInputSchema = z.object({
     .string()
     .describe("The analysis of the error log, including identified issues."),
   minecraftVersion: z.string().describe('The Minecraft version.'),
-  modloader: z.string().describe('The modloader type (Forge, Fabric, Quilt, Vanilla).'),
+  modloader: z.enum(['Forge', 'Fabric', 'Quilt', 'Vanilla', 'NeoForge']).describe('The modloader type (Forge, Fabric, Quilt, Vanilla, NeoForge).'),
 });
 export type GenerateTroubleshootingStepsInput = z.infer<
   typeof GenerateTroubleshootingStepsInputSchema

@@ -9,12 +9,19 @@ import {
   generateTroubleshootingSteps,
   type GenerateTroubleshootingStepsOutput,
 } from "@/ai/flows/generate-troubleshooting-steps";
-import { useToast } from "@/hooks/use-toast";
+import {
+  generalHelpFlow,
+  type GeneralHelpOutput,
+} from "@/ai/flows/general-help";
 
-const formSchema = z.object({
+const analyzeSchema = z.object({
   errorLog: z.string().min(50, "Error log must be at least 50 characters."),
   minecraftVersion: z.string().min(1, "Minecraft version is required."),
-  modloader: z.enum(["Forge", "Fabric", "Quilt", "Vanilla"]),
+  modloader: z.enum(["Forge", "Fabric", "Quilt", "Vanilla", "NeoForge"]),
+});
+
+const helpSchema = z.object({
+  question: z.string().min(10, "Question must be at least 10 characters."),
 });
 
 export type AnalyzeAndSuggestResult = {
@@ -27,20 +34,26 @@ export interface FormState {
   error: string | null;
 }
 
+export interface GeneralHelpFormState {
+  result: GeneralHelpOutput | null;
+  error: string | null;
+}
+
 export async function analyzeAndSuggest(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const validatedFields = formSchema.safeParse({
+  const validatedFields = analyzeSchema.safeParse({
     errorLog: formData.get("errorLog"),
     minecraftVersion: formData.get("minecraftVersion"),
     modloader: formData.get("modloader"),
   });
 
   if (!validatedFields.success) {
+    const firstError = Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0];
     return {
       result: null,
-      error: validatedFields.error.flatten().fieldErrors.errorLog?.[0] || 'Invalid input.',
+      error: firstError || "Invalid input.",
     };
   }
 
@@ -68,6 +81,38 @@ export async function analyzeAndSuggest(
     return {
       result: null,
       error: "An unexpected error occurred while analyzing the log. Please try again.",
+    };
+  }
+}
+
+export async function generalHelp(
+  prevState: GeneralHelpFormState,
+  formData: FormData
+): Promise<GeneralHelpFormState> {
+  const validatedFields = helpSchema.safeParse({
+    question: formData.get("question"),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      result: null,
+      error: validatedFields.error.flatten().fieldErrors.question?.[0] || 'Invalid input.',
+    };
+  }
+
+  const { question } = validatedFields.data;
+
+  try {
+    const result = await generalHelpFlow({ question });
+    return {
+      result,
+      error: null,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      result: null,
+      error: "An unexpected error occurred while processing your question. Please try again.",
     };
   }
 }

@@ -17,7 +17,7 @@ const AnalyzeErrorLogInputSchema = z.object({
     .describe('The Minecraft error log to analyze.'),
   minecraftVersion: z.string().describe('The Minecraft version the error log is from.'),
   modloader: z
-    .enum(['Forge', 'Fabric', 'Quilt', 'Vanilla'])
+    .enum(['Forge', 'Fabric', 'Quilt', 'Vanilla', 'NeoForge'])
     .describe('The modloader used, if any.'),
 });
 export type AnalyzeErrorLogInput = z.infer<typeof AnalyzeErrorLogInputSchema>;
