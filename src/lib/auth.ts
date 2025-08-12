@@ -26,7 +26,7 @@ async function initializeAdminUser() {
     const adminUser: User = {
       name: 'Admin',
       email: process.env.ADMIN_USERNAME || 'jacobhite2007@gmail.com',
-      password: process.env.ADMIN_PASSWORD || 'Chuck62$1',
+      password: process.env.ADMIN_PASSWORD,
       isAdmin: true,
     };
     await fs.mkdir(dataDir, { recursive: true });
