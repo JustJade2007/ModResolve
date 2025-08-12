@@ -1,4 +1,3 @@
-
 import * as fs from 'fs/promises';
 import path from 'path';
 import type { User, AccountRequest } from './actions';

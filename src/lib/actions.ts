@@ -220,7 +220,6 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function approveRequest(
-  prevState: ActionFormState | undefined,
   request: AccountRequest
 ): Promise<ActionFormState> {
   try {
@@ -236,7 +235,6 @@ export async function approveRequest(
 }
 
 export async function denyRequest(
-  prevState: ActionFormState | undefined,
   email: string
 ): Promise<ActionFormState> {
   try {
@@ -252,13 +250,13 @@ export async function denyRequest(
 }
 
 export async function deleteUser(
-   prevState: ActionFormState | undefined,
   email: string
 ): Promise<ActionFormState> {
   try {
     const userData = await UserData.getInstance();
-    if (email === process.env.ADMIN_USERNAME) {
-        return { error: 'Cannot delete the admin account.', message: null };
+    const adminEmail = process.env.ADMIN_USERNAME;
+    if (email === adminEmail) {
+        return { error: 'Cannot delete the primary admin account.', message: null };
     }
     
     await userData.deleteUser(email);
