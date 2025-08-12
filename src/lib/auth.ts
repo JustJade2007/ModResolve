@@ -58,10 +58,8 @@ export async function login(formData: FormData) {
   
   if (user && user.password === password) {
     await createSession(user);
-    // Redirect to home page after successful login
     return redirect('/');
   } else {
-    // Redirect back to login page with an error
     return redirect('/login?error=Invalid+credentials');
   }
 }

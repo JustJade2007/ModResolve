@@ -70,6 +70,27 @@ function SubmitButton({
 
 const initialFormState: ActionFormState = { message: null, error: null };
 
+function ActionButton({
+  action,
+  children,
+  variant,
+  size = 'sm',
+}: {
+  action: (formData: FormData) => void;
+  children: React.ReactNode;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined;
+  size?: "default" | "sm" | "lg" | "icon" | null | undefined
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button variant={variant} size={size} type="submit" disabled={pending} formAction={action}>
+      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
+    </Button>
+  );
+}
+
+
 export default function AdminPage() {
   const { toast } = useToast();
   const [requests, setRequests] = useState<AccountRequest[]>([]);
@@ -152,17 +173,15 @@ export default function AdminPage() {
                     <TableRow key={request.email}>
                       <TableCell className="font-medium">{request.name}</TableCell>
                       <TableCell>{request.email}</TableCell>
-                      <TableCell className="flex justify-end gap-2">
-                         <form action={() => handleAction(() => approveRequest(request))}>
-                            <Button size="sm" type="submit" disabled={isPending}>
-                                {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="mr-2 h-4 w-4"/>}
-                                Approve
-                            </Button>
-                         </form>
-                         <form action={() => handleAction(() => denyRequest(request.email))}>
+                      <TableCell className="text-right">
+                        <form className="flex justify-end gap-2" action={() => handleAction(() => approveRequest(request))}>
+                           <Button size="sm" type="submit" disabled={isPending}>
+                               {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <><Check className="mr-2 h-4 w-4"/> Approve</>}
+                           </Button>
+                        </form>
+                         <form className="flex justify-end gap-2" action={() => handleAction(() => denyRequest(request.email))}>
                              <Button size="sm" variant="destructive" type="submit" disabled={isPending}>
-                                {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="mr-2 h-4 w-4" />}
-                                Deny
+                                {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <><X className="mr-2 h-4 w-4" /> Deny</>}
                             </Button>
                          </form>
                       </TableCell>
