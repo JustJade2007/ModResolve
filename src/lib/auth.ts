@@ -59,6 +59,7 @@ export async function adminLogin(formData: FormData) {
   const identifierMatch = username === adminEmail || username === adminUsername;
 
   if (identifierMatch && password === adminPassword) {
+    // Create a specific admin user object for the session
     const adminUser: DbUser = {
       name: adminUsername!,
       email: adminEmail!,
@@ -85,6 +86,11 @@ export async function login(formData: FormData) {
     const user = await userData.findUserByEmailOrName(username);
     
     if (user && user.password === password) {
+      // Ensure we don't try to log in an admin via the normal user flow
+      // if they somehow exist in the users.json file without the flag
+      if (user.email === process.env.ADMIN_EMAIL) {
+         return redirect('/login?error=Admin+login+must+use+the+admin+portal.');
+      }
       await createSession(user);
       return redirect('/');
     }

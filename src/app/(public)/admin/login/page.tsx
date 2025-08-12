@@ -1,17 +1,36 @@
+'use client';
+
 import Link from 'next/link';
-import { adminLogin } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
+import { useFormStatus } from 'react-dom';
+import { adminLogin } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Shield, Home, AlertTriangle } from "lucide-react";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Shield, Home, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending} className="w-full">
+      {pending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Logging In...
+        </>
+      ) : (
+        'Log In as Admin'
+      )}
+    </Button>
+  );
+}
 
 export default function AdminLoginPage({
   searchParams,
@@ -20,7 +39,7 @@ export default function AdminLoginPage({
 }) {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-background p-4">
-       <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
+      <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
         <Button variant="outline" size="icon">
           <Home className="h-5 w-5" />
           <span className="sr-only">Home</span>
@@ -38,7 +57,7 @@ export default function AdminLoginPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-             {searchParams.error && (
+            {searchParams.error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Login Failed</AlertTitle>
@@ -62,9 +81,7 @@ export default function AdminLoginPage({
                 <Label htmlFor="password">Admin Password</Label>
                 <Input id="password" name="password" type="password" required />
               </div>
-              <Button type="submit" className="w-full">
-                Log In as Admin
-              </Button>
+              <SubmitButton />
             </form>
           </CardContent>
         </Card>
