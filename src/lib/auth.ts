@@ -38,10 +38,15 @@ async function initializeAdminUser() {
 initializeAdminUser();
 
 export async function isAdmin(email: string): Promise<boolean> {
-  const usersData = await fs.readFile(usersPath, 'utf-8');
-  const users: User[] = JSON.parse(usersData);
-  const user = users.find(u => u.email === email);
-  return user ? user.isAdmin : false;
+  try {
+    const usersData = await fs.readFile(usersPath, 'utf-8');
+    const users: User[] = JSON.parse(usersData);
+    const user = users.find(u => u.email === email);
+    return user ? user.isAdmin : false;
+  } catch (error) {
+    console.error('Error reading users file in isAdmin:', error);
+    return false;
+  }
 }
 
 export async function getSession(): Promise<{ user: Omit<User, 'password'> } | null> {
@@ -77,9 +82,16 @@ export async function login(formData: FormData) {
     return;
   }
 
-  const usersData = await fs.readFile(usersPath, 'utf-8');
-  const users: User[] = JSON.parse(usersData);
-
+  let users: User[] = [];
+  try {
+    const usersData = await fs.readFile(usersPath, 'utf-8');
+    users = JSON.parse(usersData);
+  } catch (error) {
+    console.error("Could not read users.json:", error);
+    redirect('/login?error=Server%20error');
+    return;
+  }
+  
   const user = users.find(u => u.email === email);
 
   if (user && user.password === password) {
