@@ -1,20 +1,19 @@
 import Link from 'next/link';
-import { login } from "@/lib/auth";
+import { adminLogin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wrench, Home, AlertTriangle, Shield } from "lucide-react";
+import { Shield, Home, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export default function LoginPage({
+export default function AdminLoginPage({
   searchParams,
 }: {
   searchParams: { error?: string };
@@ -31,11 +30,11 @@ export default function LoginPage({
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Wrench className="h-6 w-6" />
+              <Shield className="h-6 w-6" />
             </div>
-            <CardTitle className="text-2xl">Login</CardTitle>
+            <CardTitle className="text-2xl">Admin Login</CardTitle>
             <CardDescription>
-              Enter your email and password to access your account.
+              Use your administrator credentials to access the admin panel.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -48,42 +47,26 @@ export default function LoginPage({
                 </AlertDescription>
               </Alert>
             )}
-            <form action={login} className="grid gap-4">
+            <form action={adminLogin} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Admin Email</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="user@example.com"
+                  placeholder="admin@example.com"
                   required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Admin Password</Label>
                 <Input id="password" name="password" type="password" required />
               </div>
               <Button type="submit" className="w-full">
-                Log In
+                Log In as Admin
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col items-center justify-center gap-4 text-sm">
-            <p>
-              Don&apos;t have an account?{' '}
-              <Link href="/register" className="font-semibold underline">
-                Register here
-              </Link>
-            </p>
-             <div className="border-t pt-4 w-full text-center">
-                 <Button variant="link" asChild>
-                    <Link href="/admin/login">
-                        <Shield className="mr-2 h-4 w-4" />
-                        Admin Login
-                    </Link>
-                </Button>
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </main>

@@ -48,16 +48,10 @@ async function createSession(user: DbUser) {
   });
 }
 
-export async function login(formData: FormData) {
+export async function adminLogin(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  if (!email || !password) {
-    return redirect('/login?error=Invalid+credentials');
-  }
-
-  // **Definitive Fix**: Directly check for the admin user against environment variables first.
-  // This bypasses the unreliable file system for the primary admin login.
   const adminEmail = process.env.ADMIN_USERNAME;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -69,10 +63,20 @@ export async function login(formData: FormData) {
       isAdmin: true,
     };
     await createSession(adminUser);
-    return redirect('/');
+    return redirect('/admin');
   }
 
-  // Fallback to checking the JSON file for other users
+  return redirect('/admin/login?error=Invalid+administrator+credentials');
+}
+
+export async function login(formData: FormData) {
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  if (!email || !password) {
+    return redirect('/login?error=Invalid+credentials');
+  }
+
   try {
     const userData = await UserData.getInstance();
     const user = await userData.findUserByEmail(email);
@@ -89,6 +93,7 @@ export async function login(formData: FormData) {
   // If all checks fail, redirect with an error.
   return redirect('/login?error=Invalid+credentials');
 }
+
 
 export async function logout() {
   cookies().delete('session');

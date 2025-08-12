@@ -13,7 +13,7 @@ export default async function AdminLayout({
   
   // Protect the admin route
   if (!session || !(await isAdmin(session.user.email))) {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   return (
