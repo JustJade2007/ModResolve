@@ -27,8 +27,8 @@ export async function getSession(): Promise<{ user: User } | null> {
 }
 
 export async function isAdmin(email: string): Promise<boolean> {
-    // The primary admin is always an admin
-    if (email === process.env.ADMIN_EMAIL) {
+    const session = await getSession();
+    if (session?.user?.email === process.env.ADMIN_EMAIL && session.user.isAdmin) {
       return true;
     }
     const userData = await UserData.getInstance();
@@ -52,16 +52,16 @@ export async function adminLogin(formData: FormData) {
   const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  const adminIdentifier = process.env.ADMIN_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL;
   const adminUsername = process.env.ADMIN_USERNAME;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
-  const identifierMatch = username === adminIdentifier || username === adminUsername;
+  const identifierMatch = username === adminEmail || username === adminUsername;
 
   if (identifierMatch && password === adminPassword) {
     const adminUser: DbUser = {
       name: adminUsername!,
-      email: adminIdentifier!,
+      email: adminEmail!,
       password: '', // This is not stored in the cookie
       isAdmin: true,
     };
