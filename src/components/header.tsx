@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Github, LogIn, LogOut, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type User, logout } from "@/lib/auth";
+import { ThemeToggle } from "./theme-toggle";
 
 export default function Header({ user }: { user: User | null }) {
   return (
@@ -36,6 +37,7 @@ export default function Header({ user }: { user: User | null }) {
             </Link>
           </Button>
         )}
+        <ThemeToggle />
       </div>
     </header>
   );

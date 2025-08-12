@@ -3,6 +3,7 @@ import { Inter, Source_Code_Pro } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const fontInter = Inter({
   subsets: ["latin"],
@@ -33,8 +34,15 @@ export default function RootLayout({
           fontSourceCodePro.variable
         )}
       >
-        {children}
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

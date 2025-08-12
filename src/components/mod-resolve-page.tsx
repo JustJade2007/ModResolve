@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useFormStatus } from "react";
 import { analyzeAndSuggest } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +46,7 @@ function SubmitButton() {
 }
 
 export function ModResolvePage() {
-  const [state, formAction] = useFormState(analyzeAndSuggest, initialState);
+  const [state, formAction] = useActionState(analyzeAndSuggest, initialState);
 
   return (
     <div className="w-full max-w-3xl space-y-8">
