@@ -78,8 +78,7 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string;
 
   if (!email || !password) {
-    redirect('/login?error=Invalid+credentials');
-    return;
+    return redirect('/login?error=Invalid+credentials');
   }
 
   let users: User[] = [];
@@ -88,18 +87,17 @@ export async function login(formData: FormData) {
     users = JSON.parse(usersData);
   } catch (error) {
     console.error("Could not read users.json:", error);
-    redirect('/login?error=Server+error');
-    return;
+    return redirect('/login?error=Server+error,+could+not+read+user+data.');
   }
-  
+
   const user = users.find(u => u.email === email);
 
   // In a real app, use a secure comparison like bcrypt.compare
   if (user && user.password === password) {
     await createSession(user);
-    redirect('/');
+    return redirect('/');
   } else {
-    redirect('/login?error=Invalid+credentials');
+    return redirect('/login?error=Invalid+credentials');
   }
 }
 
