@@ -1,3 +1,6 @@
+
+'use client';
+
 import Link from 'next/link';
 import { login } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -13,12 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wrench, Home, AlertTriangle, Shield } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
+
+function UserLoginForm() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-background p-4">
        <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
@@ -39,12 +44,12 @@ export default function LoginPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-             {searchParams.error && (
+             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Login Failed</AlertTitle>
                 <AlertDescription>
-                  {searchParams.error.replace(/\+/g, ' ')}
+                  {error.replace(/\+/g, ' ')}
                 </AlertDescription>
               </Alert>
             )}
@@ -88,4 +93,12 @@ export default function LoginPage({
       </div>
     </main>
   );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserLoginForm />
+    </Suspense>
+  )
 }

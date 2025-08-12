@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -15,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, Home, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -32,11 +35,10 @@ function SubmitButton() {
   );
 }
 
-export default function AdminLoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
+function AdminLoginForm() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
@@ -57,12 +59,12 @@ export default function AdminLoginPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {searchParams.error && (
+            {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Login Failed</AlertTitle>
                 <AlertDescription>
-                  {searchParams.error.replace(/\+/g, ' ')}
+                  {error.replace(/\+/g, ' ')}
                 </AlertDescription>
               </Alert>
             )}
@@ -88,4 +90,12 @@ export default function AdminLoginPage({
       </div>
     </main>
   );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminLoginForm />
+    </Suspense>
+  )
 }
