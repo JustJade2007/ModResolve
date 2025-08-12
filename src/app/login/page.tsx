@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { login } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -20,20 +22,20 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Wrench className="h-6 w-6" />
             </div>
-            <CardTitle className="text-2xl">Admin Login</CardTitle>
+            <CardTitle className="text-2xl">Login</CardTitle>
             <CardDescription>
-              Enter your credentials to access the admin area.
+              Enter your email and password to access your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form action={login} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  placeholder="admin"
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="user@example.com"
                   required
                 />
               </div>
@@ -46,6 +48,14 @@ export default function LoginPage() {
               </Button>
             </form>
           </CardContent>
+          <CardFooter className="flex justify-center text-sm">
+            <p>
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="font-semibold underline">
+                Register here
+              </Link>
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </main>
