@@ -62,7 +62,7 @@ export class UserData {
           password: adminPassword,
           isAdmin: true,
         });
-        await this.writeUsers();
+        await this.writeUsers(); // This was the missing critical step
       }
       
       // Load requests or create the file if it doesn't exist
