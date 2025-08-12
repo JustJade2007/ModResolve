@@ -38,7 +38,10 @@ async function initializeAdminUser() {
 initializeAdminUser();
 
 export async function isAdmin(email: string): Promise<boolean> {
-  return email === (process.env.ADMIN_USERNAME || 'jacobhite2007@gmail.com');
+  const usersData = await fs.readFile(usersPath, 'utf-8');
+  const users: User[] = JSON.parse(usersData);
+  const user = users.find(u => u.email === email);
+  return user ? user.isAdmin : false;
 }
 
 export async function getSession(): Promise<{ user: Omit<User, 'password'> } | null> {
@@ -71,6 +74,7 @@ export async function login(formData: FormData) {
 
   if (!email || !password) {
     redirect('/login?error=Invalid%20credentials');
+    return;
   }
 
   const usersData = await fs.readFile(usersPath, 'utf-8');

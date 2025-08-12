@@ -11,9 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wrench, Home } from "lucide-react";
+import { Wrench, Home, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-background p-4">
        <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
@@ -34,6 +39,15 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+             {searchParams.error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Login Failed</AlertTitle>
+                <AlertDescription>
+                  {searchParams.error.replace(/\+/g, ' ')}
+                </AlertDescription>
+              </Alert>
+            )}
             <form action={login} className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
