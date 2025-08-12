@@ -15,8 +15,9 @@ export async function GET(request: Request) {
     ]);
     return NextResponse.json({ requests, users });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch admin data';
     return NextResponse.json(
-      { error: 'Failed to fetch admin data' },
+      { error: message },
       { status: 500 }
     );
   }

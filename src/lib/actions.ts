@@ -15,7 +15,6 @@ import {
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
 import { UserData } from './user-data';
-import type { User as AuthUser } from './auth';
 
 // Schemas
 const analyzeSchema = z.object({
@@ -55,7 +54,7 @@ export interface ActionFormState {
   error: string | null;
 }
 
-export type User = AuthUser;
+export type User = z.infer<typeof userSchema> & { isAdmin: boolean };
 export type AccountRequest = z.infer<typeof userSchema>;
 
 // AI Actions
@@ -171,9 +170,13 @@ export async function requestAccount(
     return { message: null, error: 'An account with this email already exists or has been requested.' };
   }
 
-  await userData.addRequest(newRequest);
-
-  return { error: null, message: 'Account request submitted successfully.' };
+  try {
+    await userData.addRequest(newRequest);
+    return { error: null, message: 'Account request submitted successfully.' };
+  } catch(e) {
+    const error = e instanceof Error ? e.message : 'Failed to submit request.';
+    return { message: null, error };
+  }
 }
 
 export async function createUser(
@@ -194,17 +197,16 @@ export async function createUser(
   }
   
   const { name, email, password } = validatedFields.data;
-  const userData = await UserData.getInstance();
-  const existingUser = await userData.findUserByEmail(email);
-
-  if (existingUser) {
-    return { message: null, error: 'User with this email already exists.' };
-  }
-
-  await userData.addUser({ name, email, password, isAdmin: false });
   
-  revalidatePath('/admin');
-  return { error: null, message: `User ${name} created successfully.` };
+  try {
+    const userData = await UserData.getInstance();
+    await userData.addUser({ name, email, password });
+    revalidatePath('/admin');
+    return { error: null, message: `User ${name} created successfully.` };
+  } catch(e) {
+      const error = e instanceof Error ? e.message : 'Failed to create user.';
+      return { message: null, error };
+  }
 }
 
 export async function getAccountRequests(): Promise<AccountRequest[]> {

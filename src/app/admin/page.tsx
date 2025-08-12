@@ -75,38 +75,24 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<AccountRequest[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
-  const [createState, createFormAction] = useActionState(
-    createUser,
-    initialFormState
-  );
-  const [approveState, approveAction] = useActionState(
-    approveRequest,
-    initialFormState
-  );
-  const [denyState, denyAction] = useActionState(
-    denyRequest,
-    initialFormState
-  );
-  const [deleteState, deleteAction] = useActionState(
-    deleteUser,
-    initialFormState
-  );
-  
-  const { pending: isCreatePending } = useFormStatus();
-  const { pending: isApprovePending } = useFormStatus();
-  const { pending: isDenyPending } = useFormStatus();
+  // State management for form actions
+  const [createState, createFormAction, isCreatePending] = useActionState(createUser, initialFormState);
+  const [approveState, approveAction, isApprovePending] = useActionState(approveRequest, initialFormState);
+  const [denyState, denyAction, isDenyPending] = useActionState(denyRequest, initialFormState);
+  const [deleteState, deleteAction] = useActionState(deleteUser, initialFormState);
 
   async function fetchAllData() {
     try {
       const res = await fetch('/api/admin-data');
-      if (!res.ok) throw new Error('Failed to fetch');
+      if (!res.ok) throw new Error('Failed to fetch admin data');
       const { requests, users } = await res.json();
       setRequests(requests);
       setUsers(users);
     } catch (error) {
+      const description = error instanceof Error ? error.message : 'Could not load admin data.';
       toast({
         title: 'Error',
-        description: 'Could not load admin data.',
+        description,
         variant: 'destructive',
       });
     }
@@ -116,25 +102,74 @@ export default function AdminPage() {
     fetchAllData();
   }, []);
   
-  const handleAction = (state: ActionFormState | undefined) => {
-    if(!state) return;
-    if (state.message) {
-        toast({ title: 'Success', description: state.message });
-        fetchAllData();
+  // Effect to handle toast notifications from server actions
+  useEffect(() => {
+    const handleStateChange = (state: ActionFormState) => {
+        if (state.message) {
+            toast({ title: 'Success', description: state.message });
+            fetchAllData(); // Refresh data on success
+        }
+        if (state.error) {
+            toast({
+              title: 'Error',
+              description: state.error,
+              variant: 'destructive',
+            });
+        }
     }
-    if (state.error) {
-        toast({
-          title: 'Error',
-          description: state.error,
-          variant: 'destructive',
-        });
-      }
-  }
+    if (createState) handleStateChange(createState);
+  }, [createState, toast]);
 
-  useEffect(() => handleAction(createState), [createState]);
-  useEffect(() => handleAction(approveState), [approveState]);
-  useEffect(() => handleAction(denyState), [denyState]);
-  useEffect(() => handleAction(deleteState), [deleteState]);
+  useEffect(() => {
+     const handleStateChange = (state: ActionFormState) => {
+        if (state.message) {
+            toast({ title: 'Success', description: state.message });
+            fetchAllData(); // Refresh data on success
+        }
+        if (state.error) {
+            toast({
+              title: 'Error',
+              description: state.error,
+              variant: 'destructive',
+            });
+        }
+    }
+    if (approveState) handleStateChange(approveState);
+  }, [approveState, toast]);
+
+  useEffect(() => {
+     const handleStateChange = (state: ActionFormState) => {
+        if (state.message) {
+            toast({ title: 'Success', description: state.message });
+            fetchAllData(); // Refresh data on success
+        }
+        if (state.error) {
+            toast({
+              title: 'Error',
+              description: state.error,
+              variant: 'destructive',
+            });
+        }
+    }
+    if (denyState) handleStateChange(denyState);
+  }, [denyState, toast]);
+  
+    useEffect(() => {
+     const handleStateChange = (state: ActionFormState) => {
+        if (state.message) {
+            toast({ title: 'Success', description: state.message });
+            fetchAllData(); // Refresh data on success
+        }
+        if (state.error) {
+            toast({
+              title: 'Error',
+              description: state.error,
+              variant: 'destructive',
+            });
+        }
+    }
+    if (deleteState) handleStateChange(deleteState);
+  }, [deleteState, toast]);
 
 
   return (
@@ -157,33 +192,34 @@ export default function AdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requests.length === 0 && (
+                {requests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center">
                       No pending requests.
                     </TableCell>
                   </TableRow>
+                ) : (
+                  requests.map(request => (
+                    <TableRow key={request.email}>
+                      <TableCell className="font-medium">{request.name}</TableCell>
+                      <TableCell>{request.email}</TableCell>
+                      <TableCell className="flex justify-end gap-2">
+                         <form action={() => approveAction(request)}>
+                            <Button size="sm" type="submit" disabled={isApprovePending || isDenyPending}>
+                                {isApprovePending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="mr-2 h-4 w-4"/>}
+                                Approve
+                            </Button>
+                         </form>
+                         <form action={() => denyAction(request.email)}>
+                             <Button size="sm" variant="destructive" type="submit" disabled={isApprovePending || isDenyPending}>
+                                {isDenyPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="mr-2 h-4 w-4" />}
+                                Deny
+                            </Button>
+                         </form>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
-                {requests.map(request => (
-                  <TableRow key={request.email}>
-                    <TableCell className="font-medium">{request.name}</TableCell>
-                    <TableCell>{request.email}</TableCell>
-                    <TableCell className="flex justify-end gap-2">
-                       <form action={() => approveAction(request)} className="inline-block">
-                          <Button size="sm" type="submit" disabled={isApprovePending || isDenyPending}>
-                              {isApprovePending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="mr-2 h-4 w-4"/>}
-                              Approve
-                          </Button>
-                       </form>
-                       <form action={() => denyAction(request.email)} className="inline-block">
-                           <Button size="sm" variant="destructive" type="submit" disabled={isApprovePending || isDenyPending}>
-                              {isDenyPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="mr-2 h-4 w-4" />}
-                              Deny
-                          </Button>
-                       </form>
-                    </TableCell>
-                  </TableRow>
-                ))}
               </TableBody>
             </Table>
           </CardContent>

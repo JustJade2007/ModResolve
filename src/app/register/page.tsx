@@ -35,13 +35,12 @@ function SubmitButton() {
   );
 }
 
+const initialState = { message: null, error: null };
+
 export default function RegisterPage() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
-  const [state, formAction] = useActionState(requestAccount, {
-    message: null,
-    error: null,
-  });
+  const [state, formAction] = useActionState(requestAccount, initialState);
 
   useEffect(() => {
     if (state.message) {

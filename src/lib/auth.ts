@@ -3,31 +3,40 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UserData } from './user-data';
-import type { User } from './actions';
+import type { User as DbUser } from './actions';
 
+// We only want to expose a non-sensitive version of the user in the session
+export type User = Omit<DbUser, 'password'>;
 
-export async function isAdmin(email: string): Promise<boolean> {
-  const userData = await UserData.getInstance();
-  const user = await userData.findUserByEmail(email);
-  return user ? user.isAdmin : false;
-}
+export async function getSession(): Promise<{ user: User } | null> {
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) return null;
 
-export async function getSession(): Promise<{ user: Omit<User, 'password'> } | null> {
-  const session = (await cookies().get('session')?.value) ?? null;
-  if (!session) return null;
   try {
-    // In a real app, you would verify the signature of the JWT here
-    const user = JSON.parse(Buffer.from(session, 'base64').toString());
-    // Ensure we don't leak the password hash
-    const { password, ...userWithoutPassword } = user;
-    return { user: userWithoutPassword };
+    // In a real app, you would use a library like 'jose' to sign and verify JWTs.
+    // For this prototype, we'll use a simple base64 encoded JSON object.
+    const sessionData = JSON.parse(Buffer.from(sessionCookie, 'base64').toString());
+    
+    // Ensure we don't leak sensitive data, even if it somehow got in the cookie
+    const { password, ...userWithoutPassword } = sessionData;
+    return { user: userWithoutPassword as User };
   } catch (error) {
+    console.error('Session parsing failed:', error);
     return null;
   }
 }
 
-async function createSession(user: User) {
-  const sessionData = Buffer.from(JSON.stringify(user)).toString('base64');
+export async function isAdmin(email: string): Promise<boolean> {
+    const userData = await UserData.getInstance();
+    const user = await userData.findUserByEmail(email);
+    return user?.isAdmin ?? false;
+}
+
+
+async function createSession(user: DbUser) {
+  const { password, ...userToStore } = user;
+  const sessionData = Buffer.from(JSON.stringify(userToStore)).toString('base64');
+  
   cookies().set('session', sessionData, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -46,11 +55,13 @@ export async function login(formData: FormData) {
 
   const userData = await UserData.getInstance();
   const user = await userData.findUserByEmail(email);
-
+  
   if (user && user.password === password) {
     await createSession(user);
+    // Redirect to home page after successful login
     return redirect('/');
   } else {
+    // Redirect back to login page with an error
     return redirect('/login?error=Invalid+credentials');
   }
 }

@@ -8,10 +8,12 @@ import {
   Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { type User, logout, isAdmin } from '@/lib/auth';
+import { type User, logout, isAdmin, getSession } from '@/lib/auth';
 import { ThemeToggle } from './theme-toggle';
 
-export default async function Header({ user }: { user: User | null }) {
+export default async function Header() {
+  const session = await getSession();
+  const user = session?.user ?? null;
   const userIsAdmin = user ? await isAdmin(user.email) : false;
 
   return (
@@ -42,9 +44,9 @@ export default async function Header({ user }: { user: User | null }) {
               </Button>
             )}
             <form action={logout}>
-              <Button variant="ghost" size="icon" type="submit">
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Logout</span>
+              <Button variant="ghost" type="submit">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
               </Button>
             </form>
           </>

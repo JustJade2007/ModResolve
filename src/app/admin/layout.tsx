@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Home, UserCog, Mail } from 'lucide-react';
+import { Home, UserCog } from 'lucide-react';
 import { getSession, isAdmin } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -10,6 +10,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
+  
+  // Protect the admin route
   if (!session || !(await isAdmin(session.user.email))) {
     redirect('/login');
   }

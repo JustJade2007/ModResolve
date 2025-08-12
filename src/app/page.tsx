@@ -49,7 +49,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <Header user={session?.user ?? null} />
+      <Header />
       <main className="flex flex-1 flex-col items-center p-4 md:p-6">
         {session ? <ModResolvePage /> : <LoggedOutView />}
       </main>
