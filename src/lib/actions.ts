@@ -28,7 +28,7 @@ const helpSchema = z.object({
 });
 
 const userSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  name: z.string().min(2, 'Username must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
@@ -163,11 +163,11 @@ export async function requestAccount(
   const newRequest = validatedFields.data;
   const userData = await UserData.getInstance();
   
-  const userExists = await userData.findUserByEmail(newRequest.email);
-  const requestExists = await userData.findRequestByEmail(newRequest.email);
+  const userExists = await userData.findUserByEmailOrName(newRequest.email) || await userData.findUserByEmailOrName(newRequest.name);
+  const requestExists = await userData.findRequestByEmailOrName(newRequest.email) || await userData.findRequestByEmailOrName(newRequest.name);
 
   if (userExists || requestExists) {
-    return { message: null, error: 'An account with this email already exists or has been requested.' };
+    return { message: null, error: 'An account with this email or username already exists or has been requested.' };
   }
 
   try {
@@ -254,7 +254,7 @@ export async function deleteUser(
 ): Promise<ActionFormState> {
   try {
     const userData = await UserData.getInstance();
-    const adminEmail = process.env.ADMIN_USERNAME;
+    const adminEmail = process.env.ADMIN_EMAIL;
     if (email === adminEmail) {
         return { error: 'Cannot delete the primary admin account.', message: null };
     }

@@ -49,12 +49,12 @@ export default function AdminLoginPage({
             )}
             <form action={adminLogin} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Admin Email</Label>
+                <Label htmlFor="username">Admin Username or Email</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="admin@example.com"
+                  id="username"
+                  name="username"
+                  type="text"
+                  placeholder="admin or admin@example.com"
                   required
                 />
               </div>

@@ -96,12 +96,12 @@ export default function RegisterPage() {
           <CardContent>
             <form action={formAction} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Username</Label>
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="JohnDoe"
                   required
                 />
               </div>

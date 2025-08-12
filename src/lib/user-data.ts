@@ -50,18 +50,19 @@ export class UserData {
         this.db.users = usersData ? JSON.parse(usersData) : [];
       }
 
-      const adminEmail = process.env.ADMIN_USERNAME;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminUsername = process.env.ADMIN_USERNAME;
       const adminPassword = process.env.ADMIN_PASSWORD;
       const adminExists = this.db.users.some(u => u.email === adminEmail);
 
-      if (!adminExists && adminEmail && adminPassword) {
+      if (!adminExists && adminEmail && adminPassword && adminUsername) {
         this.db.users.push({
-          name: 'Admin',
+          name: adminUsername,
           email: adminEmail,
           password: adminPassword,
           isAdmin: true,
         });
-        await this.writeUsers(); // This was the missing critical step
+        await this.writeUsers();
       }
       
       // Load requests or create the file if it doesn't exist
@@ -76,11 +77,12 @@ export class UserData {
       console.error('CRITICAL: Failed to initialize UserData store.', error);
       // If there's a catastrophic error, start fresh
       this.db = { users: [], requests: [] };
-      const adminEmail = process.env.ADMIN_USERNAME;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminUsername = process.env.ADMIN_USERNAME;
       const adminPassword = process.env.ADMIN_PASSWORD;
-      if (adminEmail && adminPassword) {
+      if (adminEmail && adminPassword && adminUsername) {
         this.db.users.push({
-          name: 'Admin',
+          name: adminUsername,
           email: adminEmail,
           password: adminPassword,
           isAdmin: true,
@@ -114,18 +116,22 @@ export class UserData {
     return [...this.db.requests];
   }
 
-  async findUserByEmail(email: string): Promise<User | undefined> {
-    return this.db.users.find(user => user.email === email);
+  async findUserByEmailOrName(identifier: string): Promise<User | undefined> {
+    return this.db.users.find(user => user.email === identifier || user.name === identifier);
   }
   
-  async findRequestByEmail(email: string): Promise<AccountRequest | undefined> {
-    return this.db.requests.find(req => req.email === email);
+  async findRequestByEmailOrName(identifier: string): Promise<AccountRequest | undefined> {
+    return this.db.requests.find(req => req.email === identifier || req.name === identifier);
   }
 
   async addUser(user: Omit<User, 'isAdmin'>): Promise<void> {
-    const exists = await this.findUserByEmail(user.email);
-    if (exists) {
+    const emailExists = await this.findUserByEmailOrName(user.email);
+    if (emailExists) {
       throw new Error('User with this email already exists.');
+    }
+    const nameExists = await this.findUserByEmailOrName(user.name);
+    if (nameExists) {
+      throw new Error('User with this username already exists.');
     }
     this.db.users.push({ ...user, isAdmin: false });
     await this.writeUsers();
@@ -145,7 +151,7 @@ export class UserData {
   }
   
   async approveRequest(approvedRequest: AccountRequest): Promise<void> {
-    const userExists = await this.findUserByEmail(approvedRequest.email);
+    const userExists = await this.findUserByEmailOrName(approvedRequest.email);
     if (!userExists) {
         await this.addUser(approvedRequest);
     }

@@ -35,7 +35,7 @@ export default function LoginPage({
             </div>
             <CardTitle className="text-2xl">Login</CardTitle>
             <CardDescription>
-              Enter your email and password to access your account.
+              Enter your username or email to access your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -50,12 +50,12 @@ export default function LoginPage({
             )}
             <form action={login} className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username or Email</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="user@example.com"
+                  id="username"
+                  name="username"
+                  type="text"
+                  placeholder="your_username or user@example.com"
                   required
                 />
               </div>

@@ -28,11 +28,11 @@ export async function getSession(): Promise<{ user: User } | null> {
 
 export async function isAdmin(email: string): Promise<boolean> {
     // The primary admin is always an admin
-    if (email === process.env.ADMIN_USERNAME) {
+    if (email === process.env.ADMIN_EMAIL) {
       return true;
     }
     const userData = await UserData.getInstance();
-    const user = await userData.findUserByEmail(email);
+    const user = await userData.findUserByEmailOrName(email);
     return user?.isAdmin ?? false;
 }
 
@@ -49,16 +49,19 @@ async function createSession(user: DbUser) {
 }
 
 export async function adminLogin(formData: FormData) {
-  const email = formData.get('email') as string;
+  const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  const adminEmail = process.env.ADMIN_USERNAME;
+  const adminIdentifier = process.env.ADMIN_EMAIL;
+  const adminUsername = process.env.ADMIN_USERNAME;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
-  if (email === adminEmail && password === adminPassword) {
+  const identifierMatch = username === adminIdentifier || username === adminUsername;
+
+  if (identifierMatch && password === adminPassword) {
     const adminUser: DbUser = {
-      name: 'Admin',
-      email: adminEmail,
+      name: adminUsername!,
+      email: adminIdentifier!,
       password: '', // This is not stored in the cookie
       isAdmin: true,
     };
@@ -70,16 +73,16 @@ export async function adminLogin(formData: FormData) {
 }
 
 export async function login(formData: FormData) {
-  const email = formData.get('email') as string;
+  const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  if (!email || !password) {
+  if (!username || !password) {
     return redirect('/login?error=Invalid+credentials');
   }
 
   try {
     const userData = await UserData.getInstance();
-    const user = await userData.findUserByEmail(email);
+    const user = await userData.findUserByEmailOrName(username);
     
     if (user && user.password === password) {
       await createSession(user);
