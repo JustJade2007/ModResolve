@@ -59,7 +59,7 @@ export async function adminLogin(formData: FormData) {
     const adminUser: DbUser = {
       name: 'Admin',
       email: adminEmail,
-      password: adminPassword, // This is not stored in the cookie
+      password: '', // This is not stored in the cookie
       isAdmin: true,
     };
     await createSession(adminUser);
