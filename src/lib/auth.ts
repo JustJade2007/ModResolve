@@ -32,7 +32,6 @@ export async function isAdmin(email: string): Promise<boolean> {
     return user?.isAdmin ?? false;
 }
 
-
 async function createSession(user: DbUser) {
   const { password, ...userToStore } = user;
   const sessionData = Buffer.from(JSON.stringify(userToStore)).toString('base64');
@@ -53,15 +52,22 @@ export async function login(formData: FormData) {
     return redirect('/login?error=Invalid+credentials');
   }
 
-  const userData = await UserData.getInstance();
-  const user = await userData.findUserByEmail(email);
-  
-  if (user && user.password === password) {
-    await createSession(user);
-    return redirect('/');
-  } else {
-    return redirect('/login?error=Invalid+credentials');
+  try {
+    const userData = await UserData.getInstance();
+    const user = await userData.findUserByEmail(email);
+    
+    if (user && user.password === password) {
+      await createSession(user);
+      // On success, redirect to the home page.
+      return redirect('/');
+    }
+  } catch (error) {
+    console.error("Login failed:", error);
+    // Fallthrough to the general error case
   }
+
+  // If anything fails (user not found, password mismatch, error), redirect with an error.
+  return redirect('/login?error=Invalid+credentials');
 }
 
 export async function logout() {
