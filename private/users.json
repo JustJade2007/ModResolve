@@ -1,0 +1,14 @@
+[
+  {
+    "name": "JustJade2007",
+    "email": "jacobhite2007@gmail.com",
+    "password": "Chuck62$1",
+    "isAdmin": true
+  },
+  {
+    "name": "Test Mctestington",
+    "email": "Test@test.test",
+    "password": "TEST123",
+    "isAdmin": false
+  }
+]
