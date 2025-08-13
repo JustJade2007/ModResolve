@@ -2,7 +2,6 @@
 'use server';
 
 import { z } from 'zod';
-import { revalidatePath } from 'next/cache';
 import {
   analyzeErrorLog,
   type AnalyzeErrorLogOutput,
@@ -15,17 +14,6 @@ import {
   generalHelpFlow,
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
-import { 
-    getUsers, 
-    getRequests as dbGetRequests,
-    findUserByEmailOrName,
-    findRequestByEmailOrName,
-    addRequest as dbAddRequest,
-    addUser as dbAddUser,
-    approveRequestByEmail as dbApproveRequest,
-    denyRequest as dbDenyRequest,
-    deleteUser as dbDeleteUser
-} from './user-data';
 
 // Schemas
 const analyzeSchema = z.object({
@@ -38,11 +26,6 @@ const helpSchema = z.object({
   question: z.string().min(10, 'Question must be at least 10 characters.'),
 });
 
-const userSchema = z.object({
-  name: z.string().min(2, 'Username must be at least 2 characters.'),
-  email: z.string().email('Invalid email address.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.'),
-});
 
 // Types
 export type AnalyzeAndSuggestResult = {
@@ -59,14 +42,6 @@ export interface GeneralHelpFormState {
   result: GeneralHelpOutput | null;
   error: string | null;
 }
-
-export interface ActionFormState {
-  message: string | null;
-  error: string | null;
-}
-
-export type User = z.infer<typeof userSchema> & { isAdmin: boolean };
-export type AccountRequest = z.infer<typeof userSchema>;
 
 // AI Actions
 export async function analyzeAndSuggest(
@@ -150,141 +125,5 @@ export async function generalHelp(
       error:
         'An unexpected error occurred while processing your question. Please try again.',
     };
-  }
-}
-
-// User management actions
-export async function requestAccount(
-  prevState: ActionFormState,
-  formData: FormData
-): Promise<ActionFormState> {
-  const validatedFields = userSchema.safeParse(
-    Object.fromEntries(formData.entries())
-  );
-
-  if (!validatedFields.success) {
-    return {
-      message: null,
-      error:
-        Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0] ||
-        'Invalid data.',
-    };
-  }
-
-  const newRequest = validatedFields.data;
-  
-  try {
-    // Check if user or request already exists
-    const userExists = await findUserByEmailOrName(newRequest.email) || await findUserByEmailOrName(newRequest.name);
-    if (userExists) {
-      return { message: null, error: 'An account with this email or username already exists.' };
-    }
-    
-    const requestExists = await findRequestByEmailOrName(newRequest.email) || await findRequestByEmailOrName(newRequest.name);
-    if (requestExists) {
-      return { message: null, error: 'An account with this email or username has already been requested.' };
-    }
-    
-    await dbAddRequest(newRequest);
-    return { error: null, message: 'Account request submitted successfully.' };
-  } catch(e) {
-    const error = e instanceof Error ? e.message : 'Failed to submit request.';
-    return { message: null, error };
-  }
-}
-
-export async function createUser(
-  prevState: ActionFormState,
-  formData: FormData
-): Promise<ActionFormState> {
-  const validatedFields = userSchema.safeParse(
-    Object.fromEntries(formData.entries())
-  );
-
-  if (!validatedFields.success) {
-    return {
-      message: null,
-      error:
-        Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0] ||
-        'Invalid data.',
-    };
-  }
-  
-  const { name, email, password } = validatedFields.data;
-  
-  try {
-    await dbAddUser({ name, email, password }, false);
-    revalidatePath('/admin');
-    return { error: null, message: `User ${name} created successfully.` };
-  } catch(e) {
-      const error = e instanceof Error ? e.message : 'Failed to create user.';
-      return { message: null, error };
-  }
-}
-
-export async function getRequests(): Promise<AccountRequest[]> {
-  return dbGetRequests();
-}
-
-export async function approveRequest(
-  prevState: ActionFormState,
-  formData: FormData
-): Promise<ActionFormState> {
-  const email = formData.get('email') as string;
-  if (!email) {
-    return { error: 'Email is required.', message: null };
-  }
-
-  try {
-    await dbApproveRequest(email);
-
-    revalidatePath('/admin');
-    return { error: null, message: `Approved request for ${email}` };
-  } catch (e) {
-    const error = e instanceof Error ? e.message : 'Failed to approve request.';
-    return { error, message: null };
-  }
-}
-
-export async function denyRequest(
-  prevState: ActionFormState,
-  formData: FormData
-): Promise<ActionFormState> {
-  const email = formData.get('email') as string;
-  if (!email) {
-    return { error: 'Email is required.', message: null };
-  }
-  try {
-    await dbDenyRequest(email);
-
-    revalidatePath('/admin');
-    return { error: null, message: `Denied request for ${email}` };
-  } catch (e) {
-    const error = e instanceof Error ? e.message : 'Failed to deny request.';
-    return { error, message: null };
-  }
-}
-
-export async function deleteUser(
-  prevState: ActionFormState,
-  formData: FormData
-): Promise<ActionFormState> {
-  const email = formData.get('email') as string;
-  if (!email) {
-    return { error: 'Email is required.', message: null };
-  }
-  try {
-    // A fail-safe to prevent deleting the primary admin, though this check should be more robust in a real app
-    if (email === 'jacobhite2007@gmail.com' || email === 'JustJade2007') {
-        return { error: 'Cannot delete the primary admin account.', message: null };
-    }
-    
-    await dbDeleteUser(email);
-
-    revalidatePath('/admin');
-    return { error: null, message: `User ${email} deleted.` };
-  } catch (e) {
-    const error = e instanceof Error ? e.message : 'Failed to delete user.';
-    return { error, message: null };
   }
 }
