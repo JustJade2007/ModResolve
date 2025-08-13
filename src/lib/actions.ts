@@ -17,7 +17,7 @@ import {
 } from '@/ai/flows/general-help';
 import { 
     getUsers, 
-    getAccountRequests as dbGetRequests,
+    getRequests as dbGetRequests,
     findUserByEmailOrName,
     findRequestByEmailOrName,
     addRequest as dbAddRequest,

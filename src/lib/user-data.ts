@@ -86,7 +86,7 @@ export async function getUsers(): Promise<User[]> {
   return await readUsersFile();
 }
 
-export async function getAccountRequests(): Promise<AccountRequest[]> {
+export async function getRequests(): Promise<AccountRequest[]> {
   return await readRequestsFile();
 }
 
