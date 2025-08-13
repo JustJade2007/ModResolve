@@ -18,8 +18,12 @@ export async function getSession(): Promise<{ user: User } | null> {
     // For this prototype, we'll use a simple base64 encoded JSON object.
     const sessionData = JSON.parse(Buffer.from(sessionCookie, 'base64').toString());
     
+    // Re-validate the user against the database to ensure they still exist and have correct permissions
+    const currentUser = await findUserByEmailOrName(sessionData.email);
+    if (!currentUser) return null;
+    
     // Ensure we don't leak sensitive data, even if it somehow got in the cookie
-    const { password, ...userWithoutPassword } = sessionData;
+    const { password, ...userWithoutPassword } = currentUser;
     return { user: userWithoutPassword as User };
   } catch (error) {
     console.error('Session parsing failed:', error);
