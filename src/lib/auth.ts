@@ -1,3 +1,4 @@
+
 'use server';
 import 'dotenv/config';
 import { cookies } from 'next/headers';
@@ -58,13 +59,13 @@ export async function adminLogin(formData: FormData) {
     const userData = await UserData.getInstance();
     let adminUser = await userData.findUserByEmailOrName(adminEmail!);
     
-    // Ensure the admin user exists in the database. This is a critical fallback.
+    // Ensure the admin user exists in the database.
     if (!adminUser) {
-        await userData.addAdminUser({
+        await userData.addUser({
             name: adminUsername!,
             email: adminEmail!,
             password: adminPassword!,
-        });
+        }, true); // Add as admin
         adminUser = await userData.findUserByEmailOrName(adminEmail!);
     }
     

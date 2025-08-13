@@ -1,3 +1,4 @@
+
 import * as fs from 'fs/promises';
 import path from 'path';
 import type { User, AccountRequest } from './actions';
@@ -143,7 +144,7 @@ export class UserData {
     return this.db.requests.find(req => req.email === email);
   }
 
-  async addUser(user: Omit<User, 'isAdmin'>): Promise<void> {
+  async addUser(user: Omit<User, 'isAdmin'>, isAdmin = false): Promise<void> {
     const emailExists = await this.findUserByEmailOrName(user.email);
     if (emailExists) {
       throw new Error('User with this email already exists.');
@@ -152,22 +153,7 @@ export class UserData {
     if (nameExists) {
       throw new Error('User with this username already exists.');
     }
-    this.db.users.push({ ...user, isAdmin: false });
-    await this.writeUsers();
-  }
-
-  async addAdminUser(user: Omit<User, 'isAdmin'>): Promise<void> {
-    const userExists = await this.findUserByEmailOrName(user.email);
-    if (userExists) {
-      // If user exists, ensure they are an admin.
-      if (!userExists.isAdmin) {
-        userExists.isAdmin = true;
-        await this.writeUsers();
-      }
-      return;
-    }
-    // If user does not exist, create them as an admin.
-    this.db.users.push({ ...user, isAdmin: true });
+    this.db.users.push({ ...user, isAdmin });
     await this.writeUsers();
   }
   
