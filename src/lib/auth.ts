@@ -1,5 +1,5 @@
 'use server';
-
+import 'dotenv/config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { UserData } from './user-data';
