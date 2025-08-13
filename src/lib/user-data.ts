@@ -43,60 +43,68 @@ export class UserData {
   }
 
   private async initialize(): Promise<void> {
+    // Prevent re-initialization
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
-    
+  
     const doInitialize = async () => {
-        try {
-          await fs.mkdir(dataDir, { recursive: true });
-
-          const adminEmail = process.env.ADMIN_EMAIL;
-          const adminUsername = process.env.ADMIN_USERNAME;
-          const adminPassword = process.env.ADMIN_PASSWORD;
-
-          // Load users or create the file with an admin if it doesn't exist
-          if (await this.fileExists(usersPath)) {
-            const usersData = await fs.readFile(usersPath, 'utf-8');
-            this.db.users = usersData ? JSON.parse(usersData) : [];
-          } else if (adminEmail && adminPassword && adminUsername) {
-            // If users.json doesn't exist, create it with the admin user
-            this.db.users.push({
-              name: adminUsername,
-              email: adminEmail,
-              password: adminPassword,
-              isAdmin: true,
-            });
-            await this.writeUsers();
-          }
-          
-          // Load requests or create the file if it doesn't exist
-          if (await this.fileExists(requestsPath)) {
-              const requestsData = await fs.readFile(requestsPath, 'utf-8');
-              this.db.requests = requestsData ? JSON.parse(requestsData) : [];
-          } else {
-              await this.writeRequests();
-          }
-
-        } catch (error) {
-          console.error('CRITICAL: Failed to initialize UserData store.', error);
-          // If there's a catastrophic error, start fresh
-          this.db = { users: [], requests: [] };
-          const adminEmail = process.env.ADMIN_EMAIL;
-          const adminUsername = process.env.ADMIN_USERNAME;
-          const adminPassword = process.env.ADMIN_PASSWORD;
-          if (adminEmail && adminPassword && adminUsername) {
-            this.db.users.push({
-              name: adminUsername,
-              email: adminEmail,
-              password: adminPassword,
-              isAdmin: true,
-            });
-          }
-          await this.writeAll();
+      try {
+        await fs.mkdir(dataDir, { recursive: true });
+  
+        // Ensure files exist before trying to read them
+        if (!(await this.fileExists(usersPath))) {
+          await fs.writeFile(usersPath, JSON.stringify([], null, 2), 'utf-8');
         }
+        if (!(await this.fileExists(requestsPath))) {
+          await fs.writeFile(requestsPath, JSON.stringify([], null, 2), 'utf-8');
+        }
+  
+        // Now it's safe to read
+        const usersData = await fs.readFile(usersPath, 'utf-8');
+        this.db.users = usersData ? JSON.parse(usersData) : [];
+  
+        const requestsData = await fs.readFile(requestsPath, 'utf-8');
+        this.db.requests = requestsData ? JSON.parse(requestsData) : [];
+  
+        // Ensure the admin user from .env always exists
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminExists = this.db.users.some(u => u.email === adminEmail);
+        
+        if (adminEmail && !adminExists) {
+            const adminUsername = process.env.ADMIN_USERNAME;
+            const adminPassword = process.env.ADMIN_PASSWORD;
+
+            if (adminUsername && adminPassword) {
+                this.db.users.push({
+                    name: adminUsername,
+                    email: adminEmail,
+                    password: adminPassword,
+                    isAdmin: true,
+                });
+                await this.writeUsers();
+            }
+        }
+      } catch (error) {
+        console.error('CRITICAL: Failed to initialize UserData store.', error);
+        // If there's a catastrophic error, reset to a safe state.
+        this.db = { users: [], requests: [] };
+        // And attempt to re-add the admin user as a last resort.
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminUsername = process.env.ADMIN_USERNAME;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        if (adminEmail && adminPassword && adminUsername) {
+            this.db.users.push({
+                name: adminUsername,
+                email: adminEmail,
+                password: adminPassword,
+                isAdmin: true,
+            });
+        }
+        await this.writeAll();
+      }
     };
-    
+  
     this.initializationPromise = doInitialize();
     return this.initializationPromise;
   }
