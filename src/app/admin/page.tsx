@@ -264,7 +264,7 @@ export default function AdminPage() {
               </TableBody>
             </Table>
           </CardContent>
-        </card>
+        </Card>
       </div>
 
       <div className="lg:col-span-1">
