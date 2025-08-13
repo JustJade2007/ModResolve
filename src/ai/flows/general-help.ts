@@ -12,7 +12,11 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GeneralHelpInputSchema = z.object({
-  question: z.string().describe('The user\'s question about a Minecraft issue or desired change.'),
+  question: z.string().describe("The user's question about a Minecraft issue or desired change."),
+  history: z.array(z.object({
+    question: z.string(),
+    answer: z.string(),
+  })).optional().describe("The history of the conversation so far."),
 });
 export type GeneralHelpInput = z.infer<typeof GeneralHelpInputSchema>;
 
@@ -31,7 +35,15 @@ const prompt = ai.definePrompt({
   output: {schema: GeneralHelpOutputSchema},
   prompt: `You are an AI expert in Minecraft. A user has a general question about fixing an issue or making a change. Provide a clear, step-by-step solution.
 
-User's Question:
+{{#if history}}
+This is the conversation history, use it for context:
+{{#each history}}
+User: {{{this.question}}}
+AI: {{{this.answer}}}
+{{/each}}
+{{/if}}
+
+User's current question:
 {{{question}}}
 
 Provide your answer:

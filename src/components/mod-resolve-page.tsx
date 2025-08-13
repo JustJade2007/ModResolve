@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 import { analyzeAndSuggest, generalHelpAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ import { Loader2 } from "lucide-react";
 import type { FormState, GeneralHelpFormState } from "@/lib/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GeneralHelpSolutionDisplay } from "./general-help-solution-display";
+import { Separator } from "./ui/separator";
+import { RefreshCw } from "lucide-react";
+
 
 const initialAnalyzeState: FormState = {
   result: null,
@@ -35,16 +38,18 @@ const initialAnalyzeState: FormState = {
 const initialHelpState: GeneralHelpFormState = {
   result: null,
   error: null,
+  history: [],
+  question: null,
 };
 
-function SubmitButton({ text }: { text: string }) {
+function SubmitButton({ text, pendingText }: { text: string, pendingText: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full">
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Analyzing...
+          {pendingText}
         </>
       ) : (
         text
@@ -58,10 +63,36 @@ export function ModResolvePage() {
     analyzeAndSuggest,
     initialAnalyzeState
   );
-  const [helpState, helpAction] = useActionState(
+  const [helpState, helpAction, isHelpPending] = useActionState(
     generalHelpAction,
     initialHelpState
   );
+
+  const helpFormRef = useRef<HTMLFormElement>(null);
+  const helpTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Effect to clear the textarea after a successful submission
+  useEffect(() => {
+    if (!isHelpPending && helpState.result) {
+      if (helpTextareaRef.current) {
+        helpTextareaRef.current.value = "";
+      }
+    }
+  }, [isHelpPending, helpState.result]);
+  
+  const handleReset = () => {
+    // This is a bit of a hack to reset the state on useActionState
+    // A more official API might be available in the future.
+    if(helpFormRef.current) {
+      const form = helpFormRef.current;
+      const formData = new FormData(form);
+      formData.set('question', 'reset-marker'); // send a marker to ignore
+      helpAction(formData);
+    }
+    // A cleaner way to reset would be ideal if the hook supported it directly.
+    // For now we manually trigger a state update that results in a reset.
+    (helpAction as any) (initialHelpState, new FormData());
+  }
 
   return (
     <div className="w-full max-w-3xl space-y-8">
@@ -125,24 +156,58 @@ export function ModResolvePage() {
                     </Select>
                   </div>
                 </div>
-                <SubmitButton text="Analyze Log" />
+                <SubmitButton text="Analyze Log" pendingText="Analyzing..." />
               </form>
             </TabsContent>
             <TabsContent value="help" className="mt-6">
-              <form action={helpAction} className="space-y-6">
+               {helpState.history.length > 0 && (
+                <div className="mb-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Conversation</h3>
+                    <Button variant="outline" size="sm" onClick={() => helpFormRef.current?.reset()}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Reset Conversation
+                    </Button>
+                  </div>
+                  <div className="space-y-4 rounded-md border p-4">
+                    {helpState.history.map((entry, index) => (
+                      <div key={index}>
+                        <p className="font-semibold text-primary">You:</p>
+                        <p className="mb-2 ml-4">{entry.question}</p>
+                        <p className="font-semibold text-accent-foreground">AI:</p>
+                        <div className="ml-4">
+                          <GeneralHelpSolutionDisplay solution={{ answer: entry.answer }} />
+                        </div>
+                        {index < helpState.history.length - 1 && <Separator className="my-4" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <form action={helpAction} ref={helpFormRef} className="space-y-6">
+                 <input
+                    type="hidden"
+                    name="history"
+                    value={JSON.stringify(helpState.history)}
+                  />
                 <div className="space-y-2">
                   <Label htmlFor="question" className="text-base">
-                    Your Question
+                    {helpState.history.length > 0 ? "Ask a follow-up question" : "Your Question"}
                   </Label>
                   <Textarea
                     id="question"
                     name="question"
-                    placeholder="Describe the issue you're facing or the change you want to make..."
-                    className="min-h-[200px]"
+                    ref={helpTextareaRef}
+                    placeholder={
+                      helpState.history.length > 0
+                        ? "e.g., 'How do I do the first step?'"
+                        : "Describe the issue you're facing or the change you want to make..."
+                    }
+                    className="min-h-[100px]"
                     required
                   />
                 </div>
-                <SubmitButton text="Get Help" />
+                <SubmitButton text="Get Help" pendingText="Thinking..." />
               </form>
             </TabsContent>
           </Tabs>
@@ -173,9 +238,6 @@ export function ModResolvePage() {
         </Card>
       )}
 
-      {helpState.result && (
-        <GeneralHelpSolutionDisplay solution={helpState.result} />
-      )}
     </div>
   );
 }

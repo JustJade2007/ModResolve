@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -24,6 +23,7 @@ const analyzeSchema = z.object({
 
 const helpSchema = z.object({
   question: z.string().min(10, 'Question must be at least 10 characters.'),
+  history: z.string().optional(), // JSON string of the history
 });
 
 
@@ -38,9 +38,16 @@ export interface FormState {
   error: string | null;
 }
 
+export type ConversationEntry = {
+    question: string;
+    answer: string;
+}
+
 export interface GeneralHelpFormState {
   result: GeneralHelpOutput | null;
   error: string | null;
+  history: ConversationEntry[];
+  question: string | null,
 }
 
 // AI Actions
@@ -99,10 +106,12 @@ export async function generalHelpAction(
 ): Promise<GeneralHelpFormState> {
   const validatedFields = helpSchema.safeParse({
     question: formData.get('question'),
+    history: formData.get('history'),
   });
 
   if (!validatedFields.success) {
     return {
+      ...prevState,
       result: null,
       error:
         validatedFields.error.flatten().fieldErrors.question?.[0] ||
@@ -111,16 +120,23 @@ export async function generalHelpAction(
   }
 
   const { question } = validatedFields.data;
+  const history = validatedFields.data.history
+    ? JSON.parse(validatedFields.data.history)
+    : [];
 
   try {
-    const result = await generalHelp({ question });
+    const result = await generalHelp({ question, history });
+    const newHistoryEntry = { question, answer: result.answer };
     return {
       result,
       error: null,
+      history: [...history, newHistoryEntry],
+      question: question,
     };
   } catch (e) {
     console.error(e);
     return {
+      ...prevState,
       result: null,
       error:
         'An unexpected error occurred while processing your question. Please try again.',
