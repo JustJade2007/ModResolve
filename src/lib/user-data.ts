@@ -52,18 +52,16 @@ export class UserData {
     try {
       await fs.mkdir(dataDir, { recursive: true });
 
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminUsername = process.env.ADMIN_USERNAME;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
       // Load users or create the file with an admin if it doesn't exist
       if (await this.fileExists(usersPath)) {
         const usersData = await fs.readFile(usersPath, 'utf-8');
         this.db.users = usersData ? JSON.parse(usersData) : [];
-      }
-
-      const adminEmail = process.env.ADMIN_EMAIL;
-      const adminUsername = process.env.ADMIN_USERNAME;
-      const adminPassword = process.env.ADMIN_PASSWORD;
-      const adminExists = this.db.users.some(u => u.email === adminEmail);
-
-      if (!adminExists && adminEmail && adminPassword && adminUsername) {
+      } else if (adminEmail && adminPassword && adminUsername) {
+        // If users.json doesn't exist, create it with the admin user
         this.db.users.push({
           name: adminUsername,
           email: adminEmail,
