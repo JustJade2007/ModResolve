@@ -221,7 +221,7 @@ export async function createUser(
   }
 }
 
-export async function getAccountRequests(): Promise<AccountRequest[]> {
+export async function getRequests(): Promise<AccountRequest[]> {
   return dbGetRequests();
 }
 
