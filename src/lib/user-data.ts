@@ -7,26 +7,25 @@ const dataDir = path.join(process.cwd(), 'private');
 const usersPath = path.join(dataDir, 'users.json');
 const requestsPath = path.join(dataDir, 'requests.json');
 
-async function initialize() {
+// --- Initialization and Utility Functions ---
+
+async function ensureFile(filePath: string, defaultContent: string): Promise<void> {
+    try {
+        await fs.access(filePath);
+    } catch {
+        await fs.writeFile(filePath, defaultContent, 'utf-8');
+    }
+}
+
+async function initializeDataStore(): Promise<void> {
     try {
         await fs.mkdir(dataDir, { recursive: true });
-
-        const filesToEnsure = [
-            { path: usersPath, default: [] },
-            { path: requestsPath, default: [] },
-        ];
-
-        for (const file of filesToEnsure) {
-            try {
-                await fs.access(file.path);
-            } catch {
-                await fs.writeFile(file.path, JSON.stringify(file.default, null, 2), 'utf-8');
-            }
-        }
+        await ensureFile(usersPath, '[]');
+        await ensureFile(requestsPath, '[]');
         await ensureAdminUser();
     } catch (error) {
         console.error('CRITICAL: Failed to initialize UserData store.', error);
-        throw error;
+        throw error; // Propagate error to stop the process if data store is broken
     }
 }
 
@@ -54,16 +53,11 @@ async function ensureAdminUser(): Promise<void> {
     }
 }
 
+// --- Core Read/Write Operations ---
 
 async function readUsersFile(): Promise<User[]> {
-    try {
-        const usersData = await fs.readFile(usersPath, 'utf-8');
-        return JSON.parse(usersData);
-    } catch(e) {
-        // If file doesn't exist or is invalid, initialize and return empty
-        await initialize();
-        return [];
-    }
+    const usersData = await fs.readFile(usersPath, 'utf-8');
+    return JSON.parse(usersData);
 }
 
 async function writeUsersFile(users: User[]): Promise<void> {
@@ -71,14 +65,8 @@ async function writeUsersFile(users: User[]): Promise<void> {
 }
 
 async function readRequestsFile(): Promise<AccountRequest[]> {
-    try {
-        const requestsData = await fs.readFile(requestsPath, 'utf-8');
-        return JSON.parse(requestsData);
-    } catch(e) {
-        // If file doesn't exist or is invalid, initialize and return empty
-        await initialize();
-        return [];
-    }
+    const requestsData = await fs.readFile(requestsPath, 'utf-8');
+    return JSON.parse(requestsData);
 }
 
 async function writeRequestsFile(requests: AccountRequest[]): Promise<void> {
@@ -86,18 +74,20 @@ async function writeRequestsFile(requests: AccountRequest[]): Promise<void> {
 }
 
 // Initialize on first import.
-initialize().catch(err => {
+initializeDataStore().catch(err => {
   console.error("Failed to initialize data store on startup:", err);
   process.exit(1);
 });
 
-// PUBLIC API
+
+// --- Public Data Access API ---
+
 export async function getUsers(): Promise<User[]> {
-  return readUsersFile();
+  return await readUsersFile();
 }
 
-export async function getRequests(): Promise<AccountRequest[]> {
-  return readRequestsFile();
+export async function getAccountRequests(): Promise<AccountRequest[]> {
+  return await readRequestsFile();
 }
 
 export async function findUserByEmailOrName(identifier: string): Promise<User | undefined> {
@@ -131,6 +121,14 @@ export async function addUser(user: Omit<User, 'isAdmin'>, isAdmin = false): Pro
 
 export async function addRequest(request: AccountRequest): Promise<void> {
     const requests = await readRequestsFile();
+    const requestEmailExists = requests.some(r => r.email === request.email);
+    if(requestEmailExists) {
+        throw new Error('An account with this email has already been requested.');
+    }
+    const requestNameExists = requests.some(r => r.name === request.name);
+    if(requestNameExists) {
+        throw new Error('An account with this username has already been requested.');
+    }
     requests.push(request);
     await writeRequestsFile(requests);
 }
@@ -148,9 +146,10 @@ export async function approveRequestByEmail(email: string): Promise<void> {
         throw new Error("Request not found");
     }
     
-    await addUser(request, false);
+    // Use the core addUser function to handle duplicate checks etc.
+    await addUser({ name: request.name, email: request.email, password: request.password }, false);
     
-    // Whether user existed or not, remove the request
+    // Whether user creation succeeded or not, remove the request
     await denyRequest(request.email);
 }
 

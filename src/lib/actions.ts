@@ -16,8 +16,8 @@ import {
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
 import { 
-    getUsers as dbGetUsers, 
-    getRequests as dbGetRequests,
+    getUsers, 
+    getAccountRequests as dbGetRequests,
     findUserByEmailOrName,
     findRequestByEmailOrName,
     addRequest as dbAddRequest,
@@ -174,10 +174,13 @@ export async function requestAccount(
   const newRequest = validatedFields.data;
   
   const userExists = await findUserByEmailOrName(newRequest.email) || await findUserByEmailOrName(newRequest.name);
+  if (userExists) {
+    return { message: null, error: 'An account with this email or username already exists.' };
+  }
+  
   const requestExists = await findRequestByEmailOrName(newRequest.email) || await findRequestByEmailOrName(newRequest.name);
-
-  if (userExists || requestExists) {
-    return { message: null, error: 'An account with this email or username already exists or has been requested.' };
+  if (requestExists) {
+    return { message: null, error: 'An account with this email or username has already been requested.' };
   }
 
   try {
@@ -220,10 +223,6 @@ export async function createUser(
 
 export async function getAccountRequests(): Promise<AccountRequest[]> {
   return dbGetRequests();
-}
-
-export async function getUsers(): Promise<User[]> {
-  return dbGetUsers();
 }
 
 export async function approveRequest(
