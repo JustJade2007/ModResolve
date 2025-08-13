@@ -20,10 +20,17 @@ export async function getSession(): Promise<{ user: User } | null> {
     
     // Re-validate the user against the database to ensure they still exist and have correct permissions
     const currentUser = await findUserByEmailOrName(sessionData.email);
+    
     if (!currentUser) return null;
     
     // Ensure we don't leak sensitive data, even if it somehow got in the cookie
     const { password, ...userWithoutPassword } = currentUser;
+    
+    // Important: Check that the user from the cookie matches the user from the DB *and* their admin status
+    if (userWithoutPassword.isAdmin !== sessionData.isAdmin) {
+        return null;
+    }
+
     return { user: userWithoutPassword as User };
   } catch (error) {
     console.error('Session parsing failed:', error);

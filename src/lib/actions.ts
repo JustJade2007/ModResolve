@@ -173,17 +173,18 @@ export async function requestAccount(
 
   const newRequest = validatedFields.data;
   
-  const userExists = await findUserByEmailOrName(newRequest.email) || await findUserByEmailOrName(newRequest.name);
-  if (userExists) {
-    return { message: null, error: 'An account with this email or username already exists.' };
-  }
-  
-  const requestExists = await findRequestByEmailOrName(newRequest.email) || await findRequestByEmailOrName(newRequest.name);
-  if (requestExists) {
-    return { message: null, error: 'An account with this email or username has already been requested.' };
-  }
-
   try {
+    // Check if user or request already exists
+    const userExists = await findUserByEmailOrName(newRequest.email) || await findUserByEmailOrName(newRequest.name);
+    if (userExists) {
+      return { message: null, error: 'An account with this email or username already exists.' };
+    }
+    
+    const requestExists = await findRequestByEmailOrName(newRequest.email) || await findRequestByEmailOrName(newRequest.name);
+    if (requestExists) {
+      return { message: null, error: 'An account with this email or username has already been requested.' };
+    }
+    
     await dbAddRequest(newRequest);
     return { error: null, message: 'Account request submitted successfully.' };
   } catch(e) {
@@ -273,8 +274,8 @@ export async function deleteUser(
     return { error: 'Email is required.', message: null };
   }
   try {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (email === adminEmail) {
+    // A fail-safe to prevent deleting the primary admin, though this check should be more robust in a real app
+    if (email === 'jacobhite2007@gmail.com' || email === 'JustJade2007') {
         return { error: 'Cannot delete the primary admin account.', message: null };
     }
     
