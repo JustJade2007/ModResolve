@@ -49,30 +49,12 @@ export async function adminLogin(formData: FormData) {
   const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminUsername = process.env.ADMIN_USERNAME;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const userData = await UserData.getInstance();
+  const user = await userData.findUserByEmailOrName(username);
 
-  const identifierMatch = username === adminEmail || username === adminUsername;
-  
-  if (identifierMatch && password === adminPassword) {
-    const userData = await UserData.getInstance();
-    let adminUser = await userData.findUserByEmailOrName(adminEmail!);
-    
-    // Ensure the admin user exists in the database.
-    if (!adminUser) {
-        await userData.addUser({
-            name: adminUsername!,
-            email: adminEmail!,
-            password: adminPassword!,
-        }, true); // Add as admin
-        adminUser = await userData.findUserByEmailOrName(adminEmail!);
-    }
-    
-    if (adminUser) {
-        await createSession(adminUser);
-        return redirect('/admin');
-    }
+  if (user && user.password === password && user.isAdmin) {
+    await createSession(user);
+    return redirect('/admin');
   }
 
   return redirect('/admin/login?error=Invalid+administrator+credentials');

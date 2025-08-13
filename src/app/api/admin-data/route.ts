@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getSession, isAdmin } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import { getAccountRequests, getUsers } from '@/lib/actions';
 
 export async function GET(request: Request) {
   const session = await getSession();
   
-  if (!session || !(await isAdmin(session.user.email))) {
+  if (!session || !session.user.isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

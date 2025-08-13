@@ -6,6 +6,7 @@ import {
   Wrench,
   UserPlus,
   Shield,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { type User, logout, isAdmin, getSession } from '@/lib/auth';
@@ -36,12 +37,20 @@ export default async function Header() {
         {user ? (
           <>
             {userIsAdmin && (
-              <Button variant="outline" asChild>
-                <Link href="/admin">
-                  <Shield className="mr-2 h-4 w-4" />
-                  Admin
-                </Link>
-              </Button>
+              <>
+                <Button variant="outline" asChild>
+                  <Link href="/admin">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/">
+                    <Home className="mr-2 h-4 w-4" />
+                    App
+                  </Link>
+                </Button>
+              </>
             )}
             <form action={logout}>
               <Button variant="ghost" type="submit">
