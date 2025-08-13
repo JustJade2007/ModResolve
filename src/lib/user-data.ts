@@ -7,21 +7,51 @@ const dataDir = path.join(process.cwd(), 'private');
 const usersPath = path.join(dataDir, 'users.json');
 const requestsPath = path.join(dataDir, 'requests.json');
 
+const initialUsers: User[] = [
+  {
+    "name": "Admin",
+    "email": "JustJade2007",
+    "password": "Chuck62",
+    "isAdmin": true
+  },
+  {
+    "name": "Admin",
+    "email": "jacobhite2007@gmail.com",
+    "password": "Chuck62",
+    "isAdmin": true
+  }
+];
+
+const initialRequests: AccountRequest[] = [
+  {
+    "name": "Test Mctestington",
+    "email": "enderboii266@gmail.com",
+    "password": "test123"
+  }
+];
+
+
 // --- Initialization and Utility Functions ---
 
-async function ensureFile(filePath: string, defaultContent: string): Promise<void> {
+async function ensureFile(filePath: string, defaultContent: any[]): Promise<void> {
     try {
         await fs.access(filePath);
+        // File exists, check if it's empty
+        const stat = await fs.stat(filePath);
+        if (stat.size === 0) {
+             await fs.writeFile(filePath, JSON.stringify(defaultContent, null, 2), 'utf-8');
+        }
     } catch {
-        await fs.writeFile(filePath, defaultContent, 'utf-8');
+        // File doesn't exist, create it with default content
+        await fs.writeFile(filePath, JSON.stringify(defaultContent, null, 2), 'utf-8');
     }
 }
 
 async function initializeDataStore(): Promise<void> {
     try {
         await fs.mkdir(dataDir, { recursive: true });
-        await ensureFile(usersPath, '[]');
-        await ensureFile(requestsPath, '[]');
+        await ensureFile(usersPath, initialUsers);
+        await ensureFile(requestsPath, initialRequests);
         await ensureAdminUser();
     } catch (error) {
         console.error('CRITICAL: Failed to initialize UserData store.', error);
@@ -121,6 +151,11 @@ export async function addUser(user: Omit<User, 'isAdmin'>, isAdmin = false): Pro
 
 export async function addRequest(request: AccountRequest): Promise<void> {
     const requests = await readRequestsFile();
+    const userExists = await findUserByEmailOrName(request.email) || await findUserByEmailOrName(request.name);
+    if(userExists) {
+      throw new Error('An account with this email or username already exists.');
+    }
+
     const requestEmailExists = requests.some(r => r.email === request.email);
     if(requestEmailExists) {
         throw new Error('An account with this email has already been requested.');
