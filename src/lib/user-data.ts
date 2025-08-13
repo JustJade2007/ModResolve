@@ -7,167 +7,156 @@ const dataDir = path.join(process.cwd(), 'private');
 const usersPath = path.join(dataDir, 'users.json');
 const requestsPath = path.join(dataDir, 'requests.json');
 
-type Db = {
-  users: User[];
-  requests: AccountRequest[];
-};
-
 // This class is a singleton to ensure only one instance manages the database files.
 export class UserData {
   private static instance: UserData;
-  private db: Db = { users: [], requests: [] };
   private initializationPromise: Promise<void> | null = null;
 
-
-  private constructor() {}
-
-  public static getInstance(): Promise<UserData> {
-    if (!UserData.instance) {
-      UserData.instance = new UserData();
-      UserData.instance.initializationPromise = UserData.instance.initialize().catch(err => {
-        console.error("Failed to initialize UserData singleton", err);
-        // Reset instance on failure so we can retry.
-        UserData.instance.initializationPromise = null;
-        throw err; // re-throw error
-      });
-    }
-    return UserData.instance.initializationPromise!.then(() => UserData.instance);
+  private constructor() {
+    this.initializationPromise = this.initialize().catch(err => {
+      console.error("Failed to initialize UserData singleton", err);
+      this.initializationPromise = null; // Reset for retry
+      throw err;
+    });
   }
 
-  private async fileExists(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
+  public static getInstance(): UserData {
+    if (!UserData.instance) {
+      UserData.instance = new UserData();
     }
+    return UserData.instance;
   }
 
   private async initialize(): Promise<void> {
-    // Prevent re-initialization
-    if (this.initializationPromise) {
-      return this.initializationPromise;
-    }
-  
-    const doInitialize = async () => {
-      try {
-        await fs.mkdir(dataDir, { recursive: true });
-  
-        // Ensure files exist before trying to read them
-        if (!(await this.fileExists(usersPath))) {
-          await fs.writeFile(usersPath, JSON.stringify([], null, 2), 'utf-8');
-        }
-        if (!(await this.fileExists(requestsPath))) {
-          await fs.writeFile(requestsPath, JSON.stringify([], null, 2), 'utf-8');
-        }
-  
-        // Now it's safe to read
-        const usersData = await fs.readFile(usersPath, 'utf-8');
-        this.db.users = usersData ? JSON.parse(usersData) : [];
-  
-        const requestsData = await fs.readFile(requestsPath, 'utf-8');
-        this.db.requests = requestsData ? JSON.parse(requestsData) : [];
-  
-        // Ensure the admin user from .env always exists
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const adminExists = this.db.users.some(u => u.email === adminEmail);
-        
-        if (adminEmail && !adminExists) {
-            const adminUsername = process.env.ADMIN_USERNAME;
-            const adminPassword = process.env.ADMIN_PASSWORD;
+    try {
+      await fs.mkdir(dataDir, { recursive: true });
 
-            if (adminUsername && adminPassword) {
-                this.db.users.push({
-                    name: adminUsername,
-                    email: adminEmail,
-                    password: adminPassword,
-                    isAdmin: true,
-                });
-                await this.writeUsers();
-            }
+      const filesToEnsure = [
+        { path: usersPath, default: [] },
+        { path: requestsPath, default: [] },
+      ];
+
+      for (const file of filesToEnsure) {
+        try {
+          await fs.access(file.path);
+        } catch {
+          await fs.writeFile(file.path, JSON.stringify(file.default, null, 2), 'utf-8');
         }
-      } catch (error) {
-        console.error('CRITICAL: Failed to initialize UserData store.', error);
-        // If there's a catastrophic error, reset to a safe state.
-        this.db = { users: [], requests: [] };
-        // And attempt to re-add the admin user as a last resort.
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const adminUsername = process.env.ADMIN_USERNAME;
-        const adminPassword = process.env.ADMIN_PASSWORD;
-        if (adminEmail && adminPassword && adminUsername) {
-            this.db.users.push({
-                name: adminUsername,
-                email: adminEmail,
-                password: adminPassword,
-                isAdmin: true,
-            });
-        }
-        await this.writeAll();
       }
-    };
-  
-    this.initializationPromise = doInitialize();
-    return this.initializationPromise;
-  }
+      
+      // Ensure admin user exists on every startup
+      await this.ensureAdminUser();
 
-  private async writeUsers(): Promise<void> {
-    await fs.writeFile(usersPath, JSON.stringify(this.db.users, null, 2), 'utf-8');
-  }
-
-  private async writeRequests(): Promise<void> {
-    await fs.writeFile(requestsPath, JSON.stringify(this.db.requests, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('CRITICAL: Failed to initialize UserData store.', error);
+      throw error;
+    }
   }
   
-  private async writeAll(): Promise<void> {
-    await this.writeUsers();
-    await this.writeRequests();
+  private async ensureAdminUser(): Promise<void> {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminUsername || !adminPassword) {
+      console.warn("Admin credentials not found in .env file. Skipping admin user creation.");
+      return;
+    }
+
+    const users = await this.readUsersFile();
+    const adminExists = users.some(u => u.email === adminEmail);
+
+    if (!adminExists) {
+        users.push({
+            name: adminUsername,
+            email: adminEmail,
+            password: adminPassword,
+            isAdmin: true,
+        });
+        await this.writeUsersFile(users);
+    }
+  }
+  
+  private async readUsersFile(): Promise<User[]> {
+    await this.initializationPromise;
+    try {
+      const usersData = await fs.readFile(usersPath, 'utf-8');
+      return JSON.parse(usersData);
+    } catch(e) {
+      console.error("Could not read users file, returning empty array.", e);
+      return [];
+    }
+  }
+
+  private async writeUsersFile(users: User[]): Promise<void> {
+    await this.initializationPromise;
+    await fs.writeFile(usersPath, JSON.stringify(users, null, 2), 'utf-8');
+  }
+
+  private async readRequestsFile(): Promise<AccountRequest[]> {
+    await this.initializationPromise;
+     try {
+      const requestsData = await fs.readFile(requestsPath, 'utf-8');
+      return JSON.parse(requestsData);
+    } catch(e) {
+      console.error("Could not read requests file, returning empty array.", e);
+      return [];
+    }
+  }
+
+  private async writeRequestsFile(requests: AccountRequest[]): Promise<void> {
+    await this.initializationPromise;
+    await fs.writeFile(requestsPath, JSON.stringify(requests, null, 2), 'utf-8');
   }
 
   // PUBLIC API for user data
-  getUsers(): User[] {
-    return [...this.db.users];
+  async getUsers(): Promise<User[]> {
+    return this.readUsersFile();
   }
   
-  getRequests(): AccountRequest[] {
-    return [...this.db.requests];
+  async getRequests(): Promise<AccountRequest[]> {
+    return this.readRequestsFile();
   }
 
   async findUserByEmailOrName(identifier: string): Promise<User | undefined> {
-    return this.db.users.find(user => user.email === identifier || user.name === identifier);
+    const users = await this.readUsersFile();
+    return users.find(user => user.email === identifier || user.name === identifier);
   }
   
   async findRequestByEmailOrName(identifier: string): Promise<AccountRequest | undefined> {
-    return this.db.requests.find(req => req.email === identifier || req.name === identifier);
+    const requests = await this.readRequestsFile();
+    return requests.find(req => req.email === identifier || req.name === identifier);
   }
   
   async findRequestByEmail(email: string): Promise<AccountRequest | undefined> {
-    return this.db.requests.find(req => req.email === email);
+    const requests = await this.readRequestsFile();
+    return requests.find(req => req.email === email);
   }
 
   async addUser(user: Omit<User, 'isAdmin'>, isAdmin = false): Promise<void> {
-    const emailExists = await this.findUserByEmailOrName(user.email);
+    const users = await this.readUsersFile();
+    const emailExists = users.some(u => u.email === user.email);
     if (emailExists) {
       throw new Error('User with this email already exists.');
     }
-    const nameExists = await this.findUserByEmailOrName(user.name);
+    const nameExists = users.some(u => u.name === user.name);
     if (nameExists) {
       throw new Error('User with this username already exists.');
     }
-    this.db.users.push({ ...user, isAdmin });
-    await this.writeUsers();
+    users.push({ ...user, isAdmin });
+    await this.writeUsersFile(users);
   }
   
   async addRequest(request: AccountRequest): Promise<void> {
-    this.db.requests.push(request);
-    await this.writeRequests();
+    const requests = await this.readRequestsFile();
+    requests.push(request);
+    await this.writeRequestsFile(requests);
   }
 
   async deleteUser(email: string): Promise<void> {
-    const initialLength = this.db.users.length;
-    this.db.users = this.db.users.filter(user => user.email !== email);
-    if(this.db.users.length < initialLength) {
-        await this.writeUsers();
-    }
+    let users = await this.readUsersFile();
+    users = users.filter(user => user.email !== email);
+    await this.writeUsersFile(users);
   }
   
   async approveRequestByEmail(email: string): Promise<void> {
@@ -175,19 +164,21 @@ export class UserData {
     if (!request) {
         throw new Error("Request not found");
     }
-    const userExists = await this.findUserByEmailOrName(request.email);
+    
+    const users = await this.readUsersFile();
+    const userExists = users.some(u => u.email === request.email);
     if (!userExists) {
-        await this.addUser(request, false);
+      users.push({ ...request, isAdmin: false });
+      await this.writeUsersFile(users);
     }
+    
     // Whether user existed or not, remove the request
     await this.denyRequest(request.email);
   }
 
   async denyRequest(email: string): Promise<void> {
-    const initialLength = this.db.requests.length;
-    this.db.requests = this.db.requests.filter(req => req.email !== email);
-    if(this.db.requests.length < initialLength) {
-      await this.writeRequests();
-    }
+    let requests = await this.readRequestsFile();
+    requests = requests.filter(req => req.email !== email);
+    await this.writeRequestsFile(requests);
   }
 }

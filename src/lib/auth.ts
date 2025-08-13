@@ -28,7 +28,7 @@ export async function getSession(): Promise<{ user: User } | null> {
 }
 
 export async function isAdmin(email: string): Promise<boolean> {
-    const userData = await UserData.getInstance();
+    const userData = UserData.getInstance();
     const user = await userData.findUserByEmailOrName(email);
     return user?.isAdmin ?? false;
 }
@@ -49,7 +49,7 @@ export async function adminLogin(formData: FormData) {
   const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  const userData = await UserData.getInstance();
+  const userData = UserData.getInstance();
   const user = await userData.findUserByEmailOrName(username);
 
   if (user && user.password === password && user.isAdmin) {
@@ -69,7 +69,7 @@ export async function login(formData: FormData) {
   }
 
   try {
-    const userData = await UserData.getInstance();
+    const userData = UserData.getInstance();
     const user = await userData.findUserByEmailOrName(username);
     
     if (user && user.password === password) {

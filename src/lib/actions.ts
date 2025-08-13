@@ -162,7 +162,7 @@ export async function requestAccount(
   }
 
   const newRequest = validatedFields.data;
-  const userData = await UserData.getInstance();
+  const userData = UserData.getInstance();
   
   const userExists = await userData.findUserByEmailOrName(newRequest.email) || await userData.findUserByEmailOrName(newRequest.name);
   const requestExists = await userData.findRequestByEmailOrName(newRequest.email) || await userData.findRequestByEmailOrName(newRequest.name);
@@ -200,7 +200,7 @@ export async function createUser(
   const { name, email, password } = validatedFields.data;
   
   try {
-    const userData = await UserData.getInstance();
+    const userData = UserData.getInstance();
     await userData.addUser({ name, email, password }, false);
     revalidatePath('/admin');
     return { error: null, message: `User ${name} created successfully.` };
@@ -211,12 +211,12 @@ export async function createUser(
 }
 
 export async function getAccountRequests(): Promise<AccountRequest[]> {
-  const userData = await UserData.getInstance();
+  const userData = UserData.getInstance();
   return userData.getRequests();
 }
 
 export async function getUsers(): Promise<User[]> {
-  const userData = await UserData.getInstance();
+  const userData = UserData.getInstance();
   return userData.getUsers();
 }
 
@@ -230,7 +230,7 @@ export async function approveRequest(
   }
 
   try {
-    const userData = await UserData.getInstance();
+    const userData = UserData.getInstance();
     await userData.approveRequestByEmail(email);
 
     revalidatePath('/admin');
@@ -250,7 +250,7 @@ export async function denyRequest(
     return { error: 'Email is required.', message: null };
   }
   try {
-    const userData = await UserData.getInstance();
+    const userData = UserData.getInstance();
     await userData.denyRequest(email);
 
     revalidatePath('/admin');
@@ -270,7 +270,7 @@ export async function deleteUser(
     return { error: 'Email is required.', message: null };
   }
   try {
-    const userData = await UserData.getInstance();
+    const userData = UserData.getInstance();
     const adminEmail = process.env.ADMIN_EMAIL;
     if (email === adminEmail) {
         return { error: 'Cannot delete the primary admin account.', message: null };
