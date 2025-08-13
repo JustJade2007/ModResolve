@@ -1,6 +1,7 @@
+
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getAccountRequests, getUsers } from '@/lib/actions';
+import { getAccountRequests, getUsers } from '@/lib/user-data';
 
 export async function GET(request: Request) {
   const session = await getSession();

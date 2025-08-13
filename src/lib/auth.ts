@@ -3,7 +3,7 @@
 import 'dotenv/config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { UserData } from './user-data';
+import { findUserByEmailOrName } from './user-data';
 import type { User as DbUser } from './actions';
 
 // We only want to expose a non-sensitive version of the user in the session
@@ -28,8 +28,7 @@ export async function getSession(): Promise<{ user: User } | null> {
 }
 
 export async function isAdmin(email: string): Promise<boolean> {
-    const userData = UserData.getInstance();
-    const user = await userData.findUserByEmailOrName(email);
+    const user = await findUserByEmailOrName(email);
     return user?.isAdmin ?? false;
 }
 
@@ -49,8 +48,7 @@ export async function adminLogin(formData: FormData) {
   const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  const userData = UserData.getInstance();
-  const user = await userData.findUserByEmailOrName(username);
+  const user = await findUserByEmailOrName(username);
 
   if (user && user.password === password && user.isAdmin) {
     await createSession(user);
@@ -69,8 +67,7 @@ export async function login(formData: FormData) {
   }
 
   try {
-    const userData = UserData.getInstance();
-    const user = await userData.findUserByEmailOrName(username);
+    const user = await findUserByEmailOrName(username);
     
     if (user && user.password === password) {
       await createSession(user);

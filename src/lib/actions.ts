@@ -15,7 +15,17 @@ import {
   generalHelpFlow,
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
-import { UserData } from './user-data';
+import { 
+    getUsers as dbGetUsers, 
+    getRequests as dbGetRequests,
+    findUserByEmailOrName,
+    findRequestByEmailOrName,
+    addRequest as dbAddRequest,
+    addUser as dbAddUser,
+    approveRequestByEmail as dbApproveRequest,
+    denyRequest as dbDenyRequest,
+    deleteUser as dbDeleteUser
+} from './user-data';
 
 // Schemas
 const analyzeSchema = z.object({
@@ -162,17 +172,16 @@ export async function requestAccount(
   }
 
   const newRequest = validatedFields.data;
-  const userData = UserData.getInstance();
   
-  const userExists = await userData.findUserByEmailOrName(newRequest.email) || await userData.findUserByEmailOrName(newRequest.name);
-  const requestExists = await userData.findRequestByEmailOrName(newRequest.email) || await userData.findRequestByEmailOrName(newRequest.name);
+  const userExists = await findUserByEmailOrName(newRequest.email) || await findUserByEmailOrName(newRequest.name);
+  const requestExists = await findRequestByEmailOrName(newRequest.email) || await findRequestByEmailOrName(newRequest.name);
 
   if (userExists || requestExists) {
     return { message: null, error: 'An account with this email or username already exists or has been requested.' };
   }
 
   try {
-    await userData.addRequest(newRequest);
+    await dbAddRequest(newRequest);
     return { error: null, message: 'Account request submitted successfully.' };
   } catch(e) {
     const error = e instanceof Error ? e.message : 'Failed to submit request.';
@@ -200,8 +209,7 @@ export async function createUser(
   const { name, email, password } = validatedFields.data;
   
   try {
-    const userData = UserData.getInstance();
-    await userData.addUser({ name, email, password }, false);
+    await dbAddUser({ name, email, password }, false);
     revalidatePath('/admin');
     return { error: null, message: `User ${name} created successfully.` };
   } catch(e) {
@@ -211,13 +219,11 @@ export async function createUser(
 }
 
 export async function getAccountRequests(): Promise<AccountRequest[]> {
-  const userData = UserData.getInstance();
-  return userData.getRequests();
+  return dbGetRequests();
 }
 
 export async function getUsers(): Promise<User[]> {
-  const userData = UserData.getInstance();
-  return userData.getUsers();
+  return dbGetUsers();
 }
 
 export async function approveRequest(
@@ -230,8 +236,7 @@ export async function approveRequest(
   }
 
   try {
-    const userData = UserData.getInstance();
-    await userData.approveRequestByEmail(email);
+    await dbApproveRequest(email);
 
     revalidatePath('/admin');
     return { error: null, message: `Approved request for ${email}` };
@@ -250,8 +255,7 @@ export async function denyRequest(
     return { error: 'Email is required.', message: null };
   }
   try {
-    const userData = UserData.getInstance();
-    await userData.denyRequest(email);
+    await dbDenyRequest(email);
 
     revalidatePath('/admin');
     return { error: null, message: `Denied request for ${email}` };
@@ -270,13 +274,12 @@ export async function deleteUser(
     return { error: 'Email is required.', message: null };
   }
   try {
-    const userData = UserData.getInstance();
     const adminEmail = process.env.ADMIN_EMAIL;
     if (email === adminEmail) {
         return { error: 'Cannot delete the primary admin account.', message: null };
     }
     
-    await userData.deleteUser(email);
+    await dbDeleteUser(email);
 
     revalidatePath('/admin');
     return { error: null, message: `User ${email} deleted.` };
