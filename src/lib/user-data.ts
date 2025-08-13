@@ -16,15 +16,23 @@ export class UserData {
   private static instance: UserData;
   private db: Db = { users: [], requests: [] };
   private isInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
+
 
   private constructor() {}
 
-  public static async getInstance(): Promise<UserData> {
+  public static getInstance(): Promise<UserData> {
     if (!UserData.instance) {
       UserData.instance = new UserData();
-      await UserData.instance.initialize();
+      UserData.instance.initializationPromise = UserData.instance.initialize().catch(err => {
+        console.error("Failed to initialize UserData singleton", err);
+        // Reset instance on failure so we can retry.
+        UserData.instance.isInitialized = false; 
+        UserData.instance.initializationPromise = null;
+        throw err; // re-throw error
+      });
     }
-    return UserData.instance;
+    return UserData.instance.initializationPromise!.then(() => UserData.instance);
   }
 
   private async fileExists(filePath: string): Promise<boolean> {

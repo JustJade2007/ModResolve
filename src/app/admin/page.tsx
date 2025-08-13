@@ -69,7 +69,11 @@ function SubmitButton({
   );
 }
 
-function ActionButton({ children, variant, size = 'sm'}: {
+function ActionButton({ 
+    children, 
+    variant, 
+    size = 'sm'
+}: {
   children: React.ReactNode;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined;
   size?: "default" | "sm" | "lg" | "icon" | null | undefined;
@@ -91,34 +95,28 @@ export default function AdminPage() {
   const [isDataLoading, startDataLoadingTransition] = useTransition();
 
   const [createState, createFormAction, isCreatePending] = useActionState(createUser, initialFormState);
-  
-  const handleActionCompletion = async (actionFn: (formData: FormData) => Promise<ActionFormState>, formData: FormData) => {
-    startDataLoadingTransition(async () => {
-      const result = await actionFn(formData);
-      if (result.message) {
-        toast({ title: 'Success', description: result.message });
-      } else if (result.error) {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
-      }
-      fetchAllData();
-    });
-  }
+
+  const [approveState, approveAction] = useActionState(approveRequest, initialFormState);
+  const [denyState, denyAction] = useActionState(denyRequest, initialFormState);
+  const [deleteState, deleteAction] = useActionState(deleteUser, initialFormState);
   
   async function fetchAllData() {
-    try {
-      const res = await fetch('/api/admin-data');
-      if (!res.ok) throw new Error('Failed to fetch admin data');
-      const { requests, users } = await res.json();
-      setRequests(requests);
-      setUsers(users);
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Could not load admin data.';
-      toast({
-        title: 'Error',
-        description,
-        variant: 'destructive',
-      });
-    }
+    startDataLoadingTransition(async () => {
+        try {
+        const res = await fetch('/api/admin-data');
+        if (!res.ok) throw new Error('Failed to fetch admin data');
+        const { requests, users } = await res.json();
+        setRequests(requests);
+        setUsers(users);
+        } catch (error) {
+        const description = error instanceof Error ? error.message : 'Could not load admin data.';
+        toast({
+            title: 'Error',
+            description,
+            variant: 'destructive',
+        });
+        }
+    });
   }
 
   useEffect(() => {
@@ -126,14 +124,18 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (createState.message) {
-      toast({ title: 'Success', description: createState.message });
-      fetchAllData();
-    }
-    if (createState.error) {
-      toast({ title: 'Error', description: createState.error, variant: 'destructive' });
-    }
-  }, [createState, toast]);
+    const states = [createState, approveState, denyState, deleteState];
+    states.forEach(state => {
+      if (state.message) {
+        toast({ title: 'Success', description: state.message });
+        fetchAllData(); // Refresh data on success
+      }
+      if (state.error) {
+        toast({ title: 'Error', description: state.error, variant: 'destructive' });
+      }
+    });
+  }, [createState, approveState, denyState, deleteState, toast]);
+
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -168,13 +170,13 @@ export default function AdminPage() {
                       <TableCell>{request.email}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                            <form action={(fd) => handleActionCompletion(approveRequest, fd)}>
+                            <form action={approveAction}>
                                 <input type="hidden" name="email" value={request.email}/>
                                 <ActionButton variant="default">
                                     <Check className="mr-2 h-4 w-4"/> Approve
                                 </ActionButton>
                             </form>
-                            <form action={(fd) => handleActionCompletion(denyRequest, fd)}>
+                            <form action={denyAction}>
                                 <input type="hidden" name="email" value={request.email}/>
                                 <ActionButton variant="destructive">
                                     <X className="mr-2 h-4 w-4" /> Deny
@@ -218,8 +220,8 @@ export default function AdminPage() {
                       {!user.isAdmin && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={isDataLoading}>
-                               {isDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
+                            <Button variant="destructive" size="sm">
+                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -231,7 +233,7 @@ export default function AdminPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                               <form action={(fd) => handleActionCompletion(deleteUser, fd)}>
+                               <form action={deleteAction}>
                                  <input type="hidden" name="email" value={user.email}/>
                                  <AlertDialogAction asChild>
                                     <ActionButton variant="destructive">Continue</ActionButton>

@@ -180,7 +180,7 @@ export async function requestAccount(
 }
 
 export async function createUser(
-  prevState: ActionFormState | undefined,
+  prevState: ActionFormState,
   formData: FormData
 ): Promise<ActionFormState> {
   const validatedFields = userSchema.safeParse(
@@ -220,6 +220,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function approveRequest(
+  prevState: ActionFormState,
   formData: FormData
 ): Promise<ActionFormState> {
   const email = formData.get('email') as string;
@@ -240,6 +241,7 @@ export async function approveRequest(
 }
 
 export async function denyRequest(
+  prevState: ActionFormState,
   formData: FormData
 ): Promise<ActionFormState> {
   const email = formData.get('email') as string;
@@ -259,6 +261,7 @@ export async function denyRequest(
 }
 
 export async function deleteUser(
+  prevState: ActionFormState,
   formData: FormData
 ): Promise<ActionFormState> {
   const email = formData.get('email') as string;
