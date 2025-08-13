@@ -3,9 +3,9 @@
 /**
  * @fileOverview Provides general help for Minecraft issues.
  *
- * - generalHelpFlow - A function that provides solutions for general Minecraft questions.
- * - GeneralHelpInput - The input type for the generalHelpFlow function.
- * - GeneralHelpOutput - The return type for the generalHelpFlow function.
+ * - generalHelp - A function that provides solutions for general Minecraft questions.
+ * - GeneralHelpInput - The input type for the generalHelp function.
+ * - GeneralHelpOutput - The return type for the generalHelp function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -21,8 +21,8 @@ const GeneralHelpOutputSchema = z.object({
 });
 export type GeneralHelpOutput = z.infer<typeof GeneralHelpOutputSchema>;
 
-export async function generalHelpFlow(input: GeneralHelpInput): Promise<GeneralHelpOutput> {
-  return generalHelpFlowFlow(input);
+export async function generalHelp(input: GeneralHelpInput): Promise<GeneralHelpOutput> {
+  return generalHelpFlow(input);
 }
 
 const prompt = ai.definePrompt({
@@ -38,7 +38,7 @@ Provide your answer:
 `,
 });
 
-const generalHelpFlowFlow = ai.defineFlow(
+const generalHelpFlow = ai.defineFlow(
   {
     name: 'generalHelpFlow',
     inputSchema: GeneralHelpInputSchema,

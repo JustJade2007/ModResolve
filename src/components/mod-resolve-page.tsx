@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { analyzeAndSuggest, generalHelp } from "@/lib/actions";
+import { analyzeAndSuggest, generalHelpAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,7 +59,7 @@ export function ModResolvePage() {
     initialAnalyzeState
   );
   const [helpState, helpAction] = useActionState(
-    generalHelp,
+    generalHelpAction,
     initialHelpState
   );
 

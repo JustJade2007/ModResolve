@@ -11,7 +11,7 @@ import {
   type GenerateTroubleshootingStepsOutput,
 } from '@/ai/flows/generate-troubleshooting-steps';
 import {
-  generalHelpFlow,
+  generalHelp,
   type GeneralHelpOutput,
 } from '@/ai/flows/general-help';
 
@@ -93,7 +93,7 @@ export async function analyzeAndSuggest(
   }
 }
 
-export async function generalHelp(
+export async function generalHelpAction(
   prevState: GeneralHelpFormState,
   formData: FormData
 ): Promise<GeneralHelpFormState> {
@@ -113,7 +113,7 @@ export async function generalHelp(
   const { question } = validatedFields.data;
 
   try {
-    const result = await generalHelpFlow({ question });
+    const result = await generalHelp({ question });
     return {
       result,
       error: null,
