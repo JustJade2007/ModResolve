@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Home, UserCog } from 'lucide-react';
+import { Home, UserCog, Wrench } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -33,6 +33,12 @@ export default async function AdminLayout({
             <Link href="/admin">
               <UserCog className="mr-2 h-4 w-4" />
               Account Management
+            </Link>
+          </Button>
+           <Button variant="ghost" asChild className="justify-start">
+            <Link href="/">
+              <Wrench className="mr-2 h-4 w-4" />
+              App
             </Link>
           </Button>
         </nav>

@@ -53,17 +53,25 @@ export async function adminLogin(formData: FormData) {
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   const identifierMatch = username === adminEmail || username === adminUsername;
-
+  
   if (identifierMatch && password === adminPassword) {
-    // Create a specific admin user object for the session
-    const adminUser: DbUser = {
-      name: adminUsername!,
-      email: adminEmail!,
-      password: '', // This is not stored in the cookie
-      isAdmin: true,
-    };
-    await createSession(adminUser);
-    return redirect('/admin');
+    const userData = await UserData.getInstance();
+    let adminUser = await userData.findUserByEmailOrName(adminEmail!);
+    
+    // Ensure the admin user exists in the database. This is a critical fallback.
+    if (!adminUser) {
+        await userData.addAdminUser({
+            name: adminUsername!,
+            email: adminEmail!,
+            password: adminPassword!,
+        });
+        adminUser = await userData.findUserByEmailOrName(adminEmail!);
+    }
+    
+    if (adminUser) {
+        await createSession(adminUser);
+        return redirect('/admin');
+    }
   }
 
   return redirect('/admin/login?error=Invalid+administrator+credentials');
@@ -83,8 +91,7 @@ export async function login(formData: FormData) {
     
     if (user && user.password === password) {
       // Ensure we don't try to log in an admin via the normal user flow
-      // if they somehow exist in the users.json file without the flag
-      if (user.email === process.env.ADMIN_EMAIL) {
+      if (user.isAdmin) {
          return redirect('/login?error=Admin+login+must+use+the+admin+portal.');
       }
       await createSession(user);

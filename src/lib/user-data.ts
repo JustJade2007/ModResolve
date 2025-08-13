@@ -155,6 +155,21 @@ export class UserData {
     this.db.users.push({ ...user, isAdmin: false });
     await this.writeUsers();
   }
+
+  async addAdminUser(user: Omit<User, 'isAdmin'>): Promise<void> {
+    const userExists = await this.findUserByEmailOrName(user.email);
+    if (userExists) {
+      // If user exists, ensure they are an admin.
+      if (!userExists.isAdmin) {
+        userExists.isAdmin = true;
+        await this.writeUsers();
+      }
+      return;
+    }
+    // If user does not exist, create them as an admin.
+    this.db.users.push({ ...user, isAdmin: true });
+    await this.writeUsers();
+  }
   
   async addRequest(request: AccountRequest): Promise<void> {
     this.db.requests.push(request);
