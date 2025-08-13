@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { getAccountRequests, getUsers } from '@/lib/user-data';
+import { getRequests, getUsers } from '@/lib/user-data';
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
   try {
     const [requests, users] = await Promise.all([
-      getAccountRequests(),
+      getRequests(),
       getUsers(),
     ]);
     return NextResponse.json({ requests, users });
