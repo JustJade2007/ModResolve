@@ -104,7 +104,10 @@ export default function AdminPage() {
     startDataLoadingTransition(async () => {
         try {
         const res = await fetch('/api/admin-data');
-        if (!res.ok) throw new Error('Failed to fetch admin data');
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({error: 'An unknown error occurred.'}));
+            throw new Error(errorData.error || 'Failed to fetch admin data');
+        }
         const { requests, users } = await res.json();
         setRequests(requests);
         setUsers(users);
@@ -157,7 +160,13 @@ export default function AdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requests.length === 0 ? (
+                {isDataLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center">
+                      <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    </TableCell>
+                  </TableRow>
+                ) : requests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center">
                       No pending requests.
@@ -209,7 +218,13 @@ export default function AdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map(user => (
+                 {isDataLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                       <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    </TableCell>
+                  </TableRow>
+                ) : users.map(user => (
                   <TableRow key={user.email}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -249,7 +264,7 @@ export default function AdminPage() {
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
+        </card>
       </div>
 
       <div className="lg:col-span-1">
