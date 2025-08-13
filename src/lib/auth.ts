@@ -27,10 +27,6 @@ export async function getSession(): Promise<{ user: User } | null> {
 }
 
 export async function isAdmin(email: string): Promise<boolean> {
-    const session = await getSession();
-    if (session?.user?.email === process.env.ADMIN_EMAIL && session.user.isAdmin) {
-      return true;
-    }
     const userData = await UserData.getInstance();
     const user = await userData.findUserByEmailOrName(email);
     return user?.isAdmin ?? false;
