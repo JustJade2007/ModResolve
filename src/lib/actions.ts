@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -200,7 +201,7 @@ export async function createUser(
   
   try {
     const userData = await UserData.getInstance();
-    await userData.addUser({ name, email, password });
+    await userData.addUser({ name, email, password }, false);
     revalidatePath('/admin');
     return { error: null, message: `User ${name} created successfully.` };
   } catch(e) {

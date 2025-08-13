@@ -91,11 +91,10 @@ export async function login(formData: FormData) {
     const user = await userData.findUserByEmailOrName(username);
     
     if (user && user.password === password) {
-      // Ensure we don't try to log in an admin via the normal user flow
-      if (user.isAdmin) {
-         return redirect('/login?error=Admin+login+must+use+the+admin+portal.');
-      }
       await createSession(user);
+      if (user.isAdmin) {
+        return redirect('/admin');
+      }
       return redirect('/');
     }
   } catch (error) {

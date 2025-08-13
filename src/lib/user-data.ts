@@ -177,7 +177,7 @@ export class UserData {
     }
     const userExists = await this.findUserByEmailOrName(request.email);
     if (!userExists) {
-        await this.addUser(request);
+        await this.addUser(request, false);
     }
     // Whether user existed or not, remove the request
     await this.denyRequest(request.email);
