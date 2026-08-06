@@ -41,10 +41,10 @@ const prompt = ai.definePrompt({
 You will use the provided error log, Minecraft version, and modloader to identify the root cause of the issue and suggest potential solutions.
 
 Error Log:
-{{errorLog}}
+{{{errorLog}}}
 
-Minecraft Version: {{minecraftVersion}}
-Modloader: {{modloader}}
+Minecraft Version: {{{minecraftVersion}}}
+Modloader: {{{modloader}}}
 
 Identify the root cause of the issue and suggest potential solutions.
 `,

@@ -73,9 +73,16 @@ export async function analyzeAndSuggest(
 
   const { errorLog, minecraftVersion, modloader } = validatedFields.data;
 
+  // Truncate the error log to the last 20,000 characters to prevent token limit issues
+  // and potential Handlebars parsing issues with extremely large logs.
+  // Most relevant info is usually at the end of the log.
+  const truncatedErrorLog = errorLog.length > 20000 
+    ? `...[truncated]...\n${errorLog.slice(-20000)}` 
+    : errorLog;
+
   try {
     const analysis = await analyzeErrorLog({
-      errorLog,
+      errorLog: truncatedErrorLog,
       minecraftVersion,
       modloader,
     });
@@ -91,7 +98,7 @@ export async function analyzeAndSuggest(
       error: null,
     };
   } catch (e) {
-    console.error(e);
+    console.error('Analyze and Suggest Error:', e);
     return {
       result: null,
       error:
@@ -134,7 +141,7 @@ export async function generalHelpAction(
       question: question,
     };
   } catch (e) {
-    console.error(e);
+    console.error('General Help Error:', e);
     return {
       ...prevState,
       result: null,
